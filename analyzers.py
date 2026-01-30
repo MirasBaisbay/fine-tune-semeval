@@ -129,17 +129,24 @@ class CountryFreedomAnalyzer:
         found = False
 
         if os.path.exists(FREEDOM_INDEX_FILE):
-            try:
-                with open(FREEDOM_INDEX_FILE, mode='r', encoding='utf-8') as f:
-                    reader = csv.DictReader(f, delimiter=';')
-                    for row in reader:
-                        if row['ISO'] == iso3:
-                            score_str = row.get('Score 2025', '0').replace(',', '.')
-                            score = float(score_str)
-                            found = True
-                            break
-            except Exception as e:
-                logger.error(f"Error reading Freedom CSV: {e}")
+            # Try multiple encodings for CSV files with special characters
+            for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+                try:
+                    with open(FREEDOM_INDEX_FILE, mode='r', encoding=encoding) as f:
+                        reader = csv.DictReader(f, delimiter=';')
+                        for row in reader:
+                            if row.get('ISO') == iso3:
+                                score_str = row.get('Score 2025', '0').replace(',', '.')
+                                score = float(score_str)
+                                found = True
+                                break
+                    if found:
+                        break
+                except UnicodeDecodeError:
+                    continue
+                except Exception as e:
+                    logger.error(f"Error reading Freedom CSV with {encoding}: {e}")
+                    break
         else:
             logger.warning(f"Freedom Index file '{FREEDOM_INDEX_FILE}' not found.")
 
