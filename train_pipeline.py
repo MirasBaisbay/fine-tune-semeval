@@ -857,15 +857,18 @@ def train_span_identification(
         learning_rate=training_config.learning_rate_si,
         per_device_train_batch_size=training_config.batch_size_si,
         per_device_eval_batch_size=training_config.batch_size_si,
+        gradient_accumulation_steps=2,  # Effective batch size = batch_size * 2
         num_train_epochs=training_config.num_epochs_si,
         weight_decay=training_config.weight_decay,
         warmup_ratio=training_config.warmup_ratio,
+        fp16=True,  # Mixed precision for faster training
         load_best_model_at_end=True,
         metric_for_best_model="f1",
         greater_is_better=True,
         logging_dir=f"{training_config.si_model_dir}/logs",
-        logging_steps=50,  # More frequent logging
+        logging_steps=50,
         report_to="none",
+        dataloader_num_workers=4,  # Parallel data loading
     )
 
     # Data collator for token classification
@@ -978,15 +981,18 @@ def train_technique_classification(
         learning_rate=training_config.learning_rate_tc,
         per_device_train_batch_size=training_config.batch_size_tc,
         per_device_eval_batch_size=training_config.batch_size_tc,
+        gradient_accumulation_steps=2,  # Effective batch size = batch_size * 2
         num_train_epochs=training_config.num_epochs_tc,
         weight_decay=training_config.weight_decay,
         warmup_ratio=training_config.warmup_ratio,
+        fp16=True,  # Mixed precision for faster training
         load_best_model_at_end=True,
         metric_for_best_model="f1_micro",
         greater_is_better=True,
         logging_dir=f"{training_config.tc_model_dir}/logs",
-        logging_steps=50,  # More frequent logging
+        logging_steps=50,
         report_to="none",
+        dataloader_num_workers=4,  # Parallel data loading
     )
 
     # Remove non-tensor columns for training
