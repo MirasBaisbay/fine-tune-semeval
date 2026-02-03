@@ -220,6 +220,8 @@ def report_node(state: ProfilerState) -> Dict:
     """
     Generates final MBFC-compliant report with weighted scores.
     """
+    from urllib.parse import urlparse
+
     # === Calculate Weighted Bias Score ===
     bias_analysis = ScoringCalculator.calculate_bias(
         economic_score=state["economic_bias"],
@@ -248,60 +250,34 @@ def report_node(state: ProfilerState) -> Dict:
         freedom_penalty=state["freedom_data"]["penalty"]
     )
 
-    # === Generate Report ===
+    # === Extract domain for report ===
+    domain = urlparse(state['target_url']).netloc.replace('www.', '')
+
+    # === Country code to name mapping ===
+    country_names = {
+        "US": "United States", "GB": "United Kingdom", "CA": "Canada",
+        "AU": "Australia", "DE": "Germany", "FR": "France", "IT": "Italy",
+        "ES": "Spain", "NL": "Netherlands", "BE": "Belgium", "CH": "Switzerland",
+        "AT": "Austria", "SE": "Sweden", "NO": "Norway", "DK": "Denmark",
+        "FI": "Finland", "IE": "Ireland", "NZ": "New Zealand", "JP": "Japan",
+        "KR": "South Korea", "CN": "China", "IN": "India", "BR": "Brazil",
+        "MX": "Mexico", "RU": "Russia", "ZA": "South Africa", "KZ": "Kazakhstan",
+        "PL": "Poland", "CZ": "Czech Republic", "HU": "Hungary", "RO": "Romania",
+        "GR": "Greece", "PT": "Portugal", "IL": "Israel", "AE": "United Arab Emirates",
+        "SA": "Saudi Arabia", "EG": "Egypt", "NG": "Nigeria", "KE": "Kenya"
+    }
+    country_name = country_names.get(state['country_code'], state['country_code'])
+
+    # === Generate Simplified Report ===
     report = f"""
-================================================================================
-                    MEDIA BIAS / FACT CHECK REPORT
-                      (MBFC Methodology Compliant)
-================================================================================
-
-TARGET: {state['target_url']}
-MEDIA TYPE: {state['media_type']}
-COUNTRY: {state['country_code']} - Freedom Rating: {state['freedom_data']['rating']} ({state['freedom_data']['score']}/100)
-TRAFFIC: {state['traffic_data']['details']}
-
---------------------------------------------------------------------------------
-1. BIAS RATING
---------------------------------------------------------------------------------
-   Component Scores (Scale: -10 Left to +10 Right):
-
-   Economic Position (35%):      {state['economic_bias']:+.1f}
-   Social Position (35%):        {state['social_bias']:+.1f}
-   News Reporting Balance (15%): {state['news_reporting_bias']:+.1f}
-   Editorial Bias (15%):         {state['editorial_bias']:+.1f}
-
-   WEIGHTED BIAS SCORE: {bias_score:+.2f}
-   BIAS LABEL: {bias_label.upper()}
-
---------------------------------------------------------------------------------
-2. FACTUAL REPORTING
---------------------------------------------------------------------------------
-   Component Scores (Scale: 0 Best to 10 Worst):
-
-   Failed Fact Checks (40%):     {state['fact_check_score']:.1f}/10
-   Sourcing Quality (25%):       {state['sourcing_score']:.1f}/10
-   Transparency (25%):           {state['transparency_score']:.1f}/10
-   Propaganda/Bias in News (10%): {state['propaganda_score']:.1f}/10
-
-   WEIGHTED FACTUALITY SCORE: {fact_score:.2f} (Lower is Better)
-   FACTUALITY LABEL: {fact_label.upper()}
-
---------------------------------------------------------------------------------
-3. OVERALL CREDIBILITY SCORE (0-10)
---------------------------------------------------------------------------------
-   Factual Reporting Points: +{f_pts} ({fact_label})
-   Bias Rating Points:       +{b_pts} ({bias_label})
-   Traffic Bonus:            +{state['traffic_data']['points']}
-   Freedom Penalty:          {state['freedom_data']['penalty']}
-
-   -------------------------------------
-   TOTAL CREDIBILITY SCORE: {cred_score}/10
-   VERDICT: {cred_level.upper()}
-   -------------------------------------
-
-================================================================================
-                              END OF REPORT
-================================================================================
+Detailed Report for {domain}
+Bias Rating: {bias_label.upper()} ({bias_score:+.1f})
+Factual Reporting: {fact_label.upper()} ({fact_score:.1f})
+Country: {country_name}
+MBFC's Country Freedom Rating: {state['freedom_data']['rating'].upper()}
+Media Type: {state['media_type']}
+Traffic/Popularity: {state['traffic_data']['traffic_label']} Traffic
+MBFC Credibility Rating: {cred_level.upper()}
 """
     return {"final_report": report}
 

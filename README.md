@@ -44,26 +44,71 @@ Media Profiler automates the evaluation of news sources by:
 
 ## System Architecture
 
-```
-                              MEDIA PROFILER SYSTEM
-+-----------------------------------------------------------------------------+
-|                                                                             |
-|  +-----------------+     +------------------+     +------------------+       |
-|  |     SCRAPE      | --> |     ANALYZE      | --> |     REPORT       |       |
-|  |      NODE       |     |      NODE        |     |      NODE        |       |
-|  +-----------------+     +------------------+     +------------------+       |
-|         |                        |                        |                 |
-|         v                        v                        v                 |
-|  +-------------+          +-------------+          +-------------+          |
-|  |MediaScraper |          | 8 Weighted  |          | MBFC Report |          |
-|  | - Articles  |          |  Analyzers  |          | - Bias      |          |
-|  | - Metadata  |          | - Bias (4)  |          | - Factual   |          |
-|  | - News/OpEd |          | - Fact (4)  |          | - Credible  |          |
-|  +-------------+          +-------------+          +-------------+          |
-|                                                                             |
-+-----------------------------------------------------------------------------+
+### Complete Analysis Pipeline
 
-                              ANALYSIS PIPELINE
+```
+                         MEDIA PROFILER - COMPLETE PIPELINE
+================================================================================
+
+                                   INPUT
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  1. SCRAPE NODE (scraper.py)                                                │
+│     ┌─────────────────────────────────────────────────────────────────┐     │
+│     │  MediaScraper                                                   │     │
+│     │  ├── Fetch homepage + sitemap                                   │     │
+│     │  ├── Collect up to 20 articles                                  │     │
+│     │  ├── Separate News vs Opinion articles                          │     │
+│     │  │   ├── URL patterns (/opinion/, /editorial/)                  │     │
+│     │  │   ├── Schema.org metadata                                    │     │
+│     │  │   └── Title patterns ("Opinion:", "Editorial:")              │     │
+│     │  └── Extract site metadata                                      │     │
+│     │       ├── About page (ownership, funding)                       │     │
+│     │       ├── Author information                                    │     │
+│     │       └── Location disclosure                                   │     │
+│     └─────────────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  2. ANALYZE NODE (analyzers.py)                                             │
+│                                                                             │
+│     ┌───────────────────────────┐   ┌───────────────────────────┐           │
+│     │    BIAS ANALYZERS (4)     │   │  FACTUALITY ANALYZERS (4) │           │
+│     ├───────────────────────────┤   ├───────────────────────────┤           │
+│     │ EconomicAnalyzer (35%)    │   │ FactCheckSearcher (40%)   │           │
+│     │ SocialAnalyzer (35%)      │   │ SourcingAnalyzer (25%)    │           │
+│     │ NewsReporting (15%)       │   │ TransparencyAnalyzer (25%)│           │
+│     │ EditorialBias (15%)       │   │ PropagandaAnalyzer (10%)  │           │
+│     └───────────────────────────┘   └───────────────────────────┘           │
+│                                                                             │
+│     ┌───────────────────────────────────────────────────────────────────┐   │
+│     │  SUPPORTING ANALYZERS                                             │   │
+│     │  ├── MediaTypeAnalyzer → TV Station / Newspaper / Website         │   │
+│     │  ├── CountryFreedomAnalyzer → 2025.csv → Freedom Rating           │   │
+│     │  └── TrafficLongevityAnalyzer → High/Medium/Minimal + Age         │   │
+│     └───────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  3. REPORT NODE (profiler.py)                                               │
+│     ┌─────────────────────────────────────────────────────────────────┐     │
+│     │  ScoringCalculator                                              │     │
+│     │  ├── calculate_bias() → Weighted average → BIAS LABEL           │     │
+│     │  ├── calculate_factuality() → Weighted average → FACT LABEL     │     │
+│     │  └── calculate_credibility() → Points system → CREDIBILITY      │     │
+│     └─────────────────────────────────────────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+                                  OUTPUT
+```
+
+### Scoring Components
+
+```
 +-----------------------------------------------------------------------------+
 |           BIAS SCORING (-10 to +10)    |    FACTUALITY SCORING (0-10)       |
 |----------------------------------------|-------------------------------------|
@@ -211,6 +256,171 @@ Based on research by:
 - Recasens et al. (2013) - Linguistic Models for Bias Detection
 - Chakraborty et al. (2016) - Clickbait Detection
 - QCRI - Emotional Language Analysis
+
+---
+
+## Analyzer Flow Diagrams
+
+### Editorial Bias Analyzer (15% of Bias Score)
+
+```
+                    EDITORIAL BIAS ANALYZER
++------------------------------------------------------------------+
+│  INPUT: Opinion/Editorial Articles                                │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  1. CLICKBAIT DETECTION (Rule-Based)                              │
+│     ├── 14 regex patterns from Chakraborty et al.                 │
+│     │   ├── 5W1H questions ("What happened when...")              │
+│     │   ├── Forward references ("This will shock you")            │
+│     │   ├── Listicles ("10 Things You Need to Know")              │
+│     │   └── Emotional triggers, superlatives, urgency             │
+│     └── Severity scoring (0.0 - 1.0)                              │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  2. LOADED LANGUAGE DETECTION (Lexicon-Based)                     │
+│     ├── Left-loaded terms (27): "far-right", "bigot", "regime"    │
+│     ├── Right-loaded terms (24): "woke", "radical left", "marxist"│
+│     ├── Subjective intensifiers (19): "extremely", "utterly"      │
+│     ├── Emotional words (26 negative + 16 positive)               │
+│     └── Doubt markers (8): "so-called", "self-proclaimed"         │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  3. LLM DIRECTION DETECTION                                       │
+│     └── If rule-based inconclusive → LLM determines left/right    │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  4. SCORE CALCULATION                                             │
+│     intensity = (loaded_language * 0.4) + (manipulation * 0.4)    │
+│                 + (clickbait * 0.2)                               │
+│     score = intensity * direction * confidence                    │
+│     → Clamp to [-10, +10]                                         │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  OUTPUT: EditorialBiasAnalysis                                    │
+│    ├── overall_score: -10 to +10                                  │
+│    ├── overall_label: "Moderate Left Editorial Bias"              │
+│    ├── clickbait_score: 0-10                                      │
+│    ├── loaded_language_score: 0-10                                │
+│    └── direction: "left" / "right" / "neutral"                    │
++------------------------------------------------------------------+
+```
+
+### News Reporting Balance Analyzer (15% of Bias Score)
+
+```
+                  NEWS REPORTING BALANCE ANALYZER
++------------------------------------------------------------------+
+│  INPUT: Straight News Articles (non-opinion)                      │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  1. FILTER & SELECT                                               │
+│     └── Up to 15 news articles (exclude opinion/editorial)        │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  2. PER-ARTICLE LLM ANALYSIS                                      │
+│     For each article → JSON:                                      │
+│     {                                                             │
+│       "topic_lean": "left" | "right" | "neutral",                 │
+│       "sourcing": "multi-sided" | "one-sided" | "no-sources",     │
+│       "framing": "neutral" | "left-leaning" | "right-leaning",    │
+│       "evidence": "Brief observation"                             │
+│     }                                                             │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  3. MATHEMATICAL SCORING                                          │
+│                                                                   │
+│  A. Story Selection (40%):                                        │
+│     ratio = (right_topics - left_topics) / (total + 1)            │
+│     weight = political_topics / total                             │
+│     selection_score = ratio * 10 * weight                         │
+│                                                                   │
+│  B. Framing (30%):                                                │
+│     ratio = (right_framing - left_framing) / (total + 1)          │
+│     framing_score = ratio * 10                                    │
+│                                                                   │
+│  C. Sourcing Modifier:                                            │
+│     diversity = multi_sided / total                               │
+│     modifier = 1.5 (if <30%) | 1.0 (30-70%) | 0.6 (if >70%)       │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  4. FINAL CALCULATION                                             │
+│     base = (selection * 0.4) + (framing * 0.6)                    │
+│     final = base * sourcing_modifier                              │
+│     → Clamp to [-10, +10]                                         │
++------------------------------------------------------------------+
+                              │
+                              ▼
++------------------------------------------------------------------+
+│  OUTPUT: NewsReportingAnalysis                                    │
+│    ├── overall_score: -10 to +10                                  │
+│    ├── overall_label: "Mild Left Reporting"                       │
+│    ├── story_selection_score, framing_score                       │
+│    ├── sourcing_diversity, sourcing_modifier                      │
+│    └── article_analyses: per-article breakdown                    │
++------------------------------------------------------------------+
+```
+
+### Propaganda Detection (10% of Factuality Score)
+
+```
+                      PROPAGANDA DETECTION
++------------------------------------------------------------------+
+│  INPUT: Article text (up to 5 articles, 1500 chars each)          │
++------------------------------------------------------------------+
+                              │
+            ┌─────────────────┴─────────────────┐
+            ▼                                   ▼
+┌───────────────────────┐           ┌───────────────────────┐
+│  LOCAL MODE (DeBERTa) │           │  LLM MODE (Fallback)  │
+├───────────────────────┤           ├───────────────────────┤
+│                       │           │                       │
+│  STAGE 1: SI Model    │           │  GPT-4o-mini prompt   │
+│  (Span Identification)│           │  ├── 14 techniques    │
+│  Token Classification │           │  └── JSON output      │
+│  → BIO tagging        │           │                       │
+│  → Find WHERE         │           └───────────────────────┘
+│                       │
+│  STAGE 2: TC Model    │
+│  (Technique Class.)   │
+│  Sequence Class.      │
+│  → 14 categories      │
+│  → Identify WHICH     │
+│                       │
+└───────────────────────┘
+            │                                   │
+            └─────────────────┬─────────────────┘
+                              ▼
++------------------------------------------------------------------+
+│  OUTPUT: PropagandaAnalysis                                       │
+│    ├── score: 0-10 (instances * 1.5, capped)                      │
+│    └── instances: List[PropagandaInstance]                        │
+│          ├── text_snippet                                         │
+│          ├── technique (14 categories)                            │
+│          ├── confidence                                           │
+│          └── context                                              │
++------------------------------------------------------------------+
+```
+
+---
 
 ### parser.py - MBFC Website Parser
 
@@ -441,56 +651,131 @@ print(result["final_report"])
 ### Sample Output
 
 ```
-================================================================================
-                    MEDIA BIAS / FACT CHECK REPORT
-                      (MBFC Methodology Compliant)
-================================================================================
+Detailed Report for bbc.com
+Bias Rating: LEFT-CENTER (-2.3)
+Factual Reporting: HIGH (1.1)
+Country: United Kingdom
+MBFC's Country Freedom Rating: MOSTLY FREE
+Media Type: TV Station
+Traffic/Popularity: High Traffic
+MBFC Credibility Rating: HIGH CREDIBILITY
+```
 
-TARGET: https://example-news.com
-MEDIA TYPE: News/Media
-COUNTRY: US - Freedom Rating: Excellent Freedom (88/100)
-TRAFFIC: High Traffic (>1M monthly visits)
+---
 
---------------------------------------------------------------------------------
-1. BIAS RATING
---------------------------------------------------------------------------------
-   Component Scores (Scale: -10 Left to +10 Right):
+## Example: Analyzing BBC.com
 
-   Economic Position (35%):      -2.5
-   Social Position (35%):        -5.0
-   News Reporting Balance (15%): -2.5
-   Editorial Bias (15%):         -5.0
+This walkthrough demonstrates the complete analysis pipeline for a real media outlet.
 
-   WEIGHTED BIAS SCORE: -3.63
-   BIAS LABEL: LEFT-CENTER
+### Step 1: Parse Articles
 
---------------------------------------------------------------------------------
-2. FACTUAL REPORTING
---------------------------------------------------------------------------------
-   Component Scores (Scale: 0 Best to 10 Worst):
+```bash
+$ python profiler.py https://www.bbc.com GB --model local
 
-   Failed Fact Checks (40%):     1.0/10
-   Sourcing Quality (25%):       2.0/10
-   Transparency (25%):           0.0/10
-   Propaganda/Bias (10%):        3.0/10
+[INFO] Scraping https://www.bbc.com...
+[INFO] Found sitemap: /sitemap.xml
+[INFO] Collecting articles from news sections...
+[INFO] Scraped 20 articles: 16 news, 4 opinion/editorial
+```
 
-   WEIGHTED FACTUALITY SCORE: 1.20 (Lower is Better)
-   FACTUALITY LABEL: HIGH
+**Articles collected:**
+```
+NEWS:
+  1. "UK inflation falls to 2.1% in latest figures"
+  2. "Election polls show tight race in key constituencies"
+  3. "Climate summit reaches new agreement on emissions"
+  ... (13 more news articles)
 
---------------------------------------------------------------------------------
-3. OVERALL CREDIBILITY SCORE (0-10)
---------------------------------------------------------------------------------
-   Factual Reporting Points: +3 (High)
-   Bias Rating Points:       +2 (Left-Center)
-   Traffic Bonus:            +2
-   Freedom Penalty:          0
+OPINION:
+  1. "Analysis: What the economic data means for households"
+  2. "Comment: The future of British foreign policy"
+  ... (2 more opinion pieces)
+```
 
-   -------------------------------------
-   TOTAL CREDIBILITY SCORE: 7/10
-   VERDICT: HIGH CREDIBILITY
-   -------------------------------------
+### Step 2: Select Articles for Analysis
 
-================================================================================
+```
+[INFO] Separating articles by type for MBFC methodology...
+[INFO] News articles (16) → NewsReportingBalanceAnalyzer, EconomicAnalyzer, SocialAnalyzer
+[INFO] Opinion articles (4) → EditorialBiasAnalyzer
+```
+
+### Step 3: Run Analyzers
+
+```
+[INFO] Running 8 weighted analyzers...
+
+BIAS ANALYZERS:
+  ├── EconomicAnalyzer (35%): Analyzing 16 articles...
+  │   └── Result: "Regulated Market Economy" → Score: -2.5
+  ├── SocialAnalyzer (35%): Analyzing 16 articles...
+  │   └── Result: "Mild Progressive" → Score: -2.5
+  ├── NewsReportingAnalyzer (15%): Analyzing 16 news articles...
+  │   └── Result: "Mild Left Reporting" → Score: -1.8
+  │       ├── Story Selection: 3 left, 2 right, 11 neutral
+  │       ├── Framing: 2 left, 1 right, 13 neutral
+  │       └── Sourcing: 70% multi-sided
+  └── EditorialBiasAnalyzer (15%): Analyzing 4 opinion articles...
+      └── Result: "Mild Left Editorial Bias" → Score: -2.1
+          ├── Clickbait: 1.2/10
+          ├── Loaded Language: 2.8/10
+          └── Direction: left (confidence: 0.65)
+
+FACTUALITY ANALYZERS:
+  ├── FactCheckSearcher (40%): Searching IFCN fact-checkers...
+  │   └── Result: 1 failed fact check found → Score: 1.0/10
+  ├── SourcingAnalyzer (25%): Analyzing hyperlinks...
+  │   └── Result: Avg 2.3 sources/article, 68% credible → Score: 1.5/10
+  ├── TransparencyAnalyzer (25%): Checking site metadata...
+  │   └── Result: All disclosures present → Score: 0.0/10
+  └── PropagandaAnalyzer (10%): Running DeBERTa SI+TC pipeline...
+      └── Result: 2 instances detected → Score: 3.0/10
+
+SUPPORTING DATA:
+  ├── MediaTypeAnalyzer: "TV Station"
+  ├── CountryFreedomAnalyzer: GB → "MOSTLY FREE" (87.18/100)
+  └── TrafficLongevityAnalyzer: "High Traffic" + ">10 years" → 3 points
+```
+
+### Step 4: Calculate Weighted Scores
+
+**Bias Calculation:**
+```
+(-2.5 × 0.35) + (-2.5 × 0.35) + (-1.8 × 0.15) + (-2.1 × 0.15)
+= -0.875 + -0.875 + -0.27 + -0.315
+= -2.335
+→ Label: "LEFT-CENTER"
+```
+
+**Factuality Calculation:**
+```
+(1.0 × 0.40) + (1.5 × 0.25) + (0.0 × 0.25) + (3.0 × 0.10)
+= 0.40 + 0.375 + 0.0 + 0.30
+= 1.075
+→ Label: "HIGH"
+```
+
+**Credibility Calculation:**
+```
+Factual Points (HIGH): +3
+Bias Points (LEFT-CENTER): +2
+Traffic Bonus: +3
+Freedom Penalty: 0
+─────────────────────
+TOTAL: 8/10 → "HIGH CREDIBILITY"
+```
+
+### Step 5: Generate Final Report
+
+```
+Detailed Report for bbc.com
+Bias Rating: LEFT-CENTER (-2.3)
+Factual Reporting: HIGH (1.1)
+Country: United Kingdom
+MBFC's Country Freedom Rating: MOSTLY FREE
+Media Type: TV Station
+Traffic/Popularity: High Traffic
+MBFC Credibility Rating: HIGH CREDIBILITY
 ```
 
 ---
