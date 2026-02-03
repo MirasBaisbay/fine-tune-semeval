@@ -157,6 +157,84 @@ def snap_to_discrete_score(score: float) -> float:
 
 
 # =============================================================================
+# NEWS REPORTING BALANCE DATA CLASSES AND LABELS
+# =============================================================================
+
+# MBFC News Reporting Balance Labels (discrete 9-point scale)
+NEWS_REPORTING_LABELS = {
+    -10.0: "Extreme Left Reporting",
+    -7.5: "Strong Left Reporting",
+    -5.0: "Moderate Left Reporting",
+    -2.5: "Mild Left Reporting",
+    0.0: "Neutral/Balanced",
+    2.5: "Mild Right Reporting",
+    5.0: "Moderate Right Reporting",
+    7.5: "Strong Right Reporting",
+    10.0: "Extreme Right Reporting",
+}
+
+
+def score_to_news_reporting_label(score: float) -> str:
+    """
+    Map a continuous score (-10 to +10) to discrete MBFC news reporting label.
+
+    Scale:
+    -10: Extreme Left Reporting - Exclusively promotes left perspectives
+    -7.5: Strong Left Reporting - Frequently promotes left with limited opposition
+    -5: Moderate Left Reporting - Often leans left but includes some counterpoints
+    -2.5: Mild Left Reporting - Slightly favors left framing
+    0: Neutral/Balanced - Equally represents all perspectives
+    +2.5: Mild Right Reporting - Slightly favors right framing
+    +5: Moderate Right Reporting - Often leans right but includes some counterpoints
+    +7.5: Strong Right Reporting - Frequently promotes right with limited opposition
+    +10: Extreme Right Reporting - Exclusively promotes right perspectives
+    """
+    if score <= -8.75:
+        return "Extreme Left Reporting"
+    elif score <= -6.25:
+        return "Strong Left Reporting"
+    elif score <= -3.75:
+        return "Moderate Left Reporting"
+    elif score <= -1.25:
+        return "Mild Left Reporting"
+    elif score <= 1.25:
+        return "Neutral/Balanced"
+    elif score <= 3.75:
+        return "Mild Right Reporting"
+    elif score <= 6.25:
+        return "Moderate Right Reporting"
+    elif score <= 8.75:
+        return "Strong Right Reporting"
+    else:
+        return "Extreme Right Reporting"
+
+
+@dataclass
+class ArticleReportingAnalysis:
+    """Analysis of a single news article for reporting balance."""
+    article_id: int
+    headline: str
+    topic_lean: str       # "left", "right", "neutral"
+    sourcing: str         # "multi-sided", "one-sided", "no-sources"
+    framing: str          # "neutral", "left-leaning", "right-leaning"
+    evidence: str         # Brief quote or observation
+
+
+@dataclass
+class NewsReportingAnalysis:
+    """Complete news reporting balance analysis result."""
+    overall_score: float              # -10 to +10
+    overall_label: str                # e.g., "Moderate Left Reporting"
+    story_selection_score: float      # -10 to +10 (topic coverage balance)
+    framing_score: float              # -10 to +10 (language neutrality)
+    sourcing_diversity: float         # 0.0 to 1.0 (multi-sided ratio)
+    sourcing_modifier: float          # 0.6, 1.0, or 1.5
+    article_analyses: List[ArticleReportingAnalysis]
+    metrics: Dict[str, int]           # left_topics, right_topics, etc.
+    methodology_notes: str
+
+
+# =============================================================================
 # CLICKBAIT DETECTION PATTERNS
 # =============================================================================
 # Based on research by Chakraborty et al. and others
@@ -936,69 +1014,167 @@ Return ONLY the JSON object.
 
 class StructuredNewsReportingAnalyzer:
     """
-    Analyzes straight news reporting balance (separate from editorial).
+    Analyzes straight news reporting balance (15% of Bias Score).
 
-    Checks:
-    - Story selection bias (which topics are covered)
-    - Framing of news events
-    - Inclusion of multiple perspectives
-    - Use of sources from different sides
+    Uses a 3-component mathematical approach:
+    1. Story Selection (40%): Do topics covered favor one political narrative?
+    2. Framing (30%): Is language used neutral or slanted?
+    3. Sourcing Balance (30%): Are multiple viewpoints quoted/represented?
+
+    Scale: -10 (Extreme Left) to +10 (Extreme Right)
+
+    Methodology:
+    - Per-article structured LLM analysis
+    - Mathematical score calculation from structured data
+    - Transparent and auditable scoring formula
     """
 
-    def analyze(self, articles: List[Article]) -> Dict[str, Any]:
-        """
-        Analyze news reporting balance.
+    def __init__(self):
+        self.loaded_language_analyzer = LoadedLanguageAnalyzer()
 
-        Returns dict with:
-        - balance_score: -10 to +10
-        - perspective_diversity: 0 to 1
-        - methodology_notes: str
+    def analyze(self, articles: List[Article]) -> NewsReportingAnalysis:
         """
-        # Filter to news articles only
-        news_articles = [a for a in articles if not a.is_opinion][:10]
+        Analyze news reporting balance using 3-component approach.
+
+        Returns:
+            NewsReportingAnalysis with detailed breakdown
+        """
+        logger.info(f"Analyzing news reporting balance for {len(articles)} articles")
+
+        # Filter to NEWS articles only (exclude opinion/editorial)
+        news_articles = [a for a in articles if not a.is_opinion]
+        if not news_articles:
+            # Fallback if opinion detection failed
+            news_articles = articles[:15]
+            logger.info("No news articles detected, using all articles")
+        else:
+            news_articles = news_articles[:15]  # Analyze up to 15 for better sample
+            logger.info(f"Using {len(news_articles)} news articles")
 
         if not news_articles:
-            return {
-                "balance_score": 0.0,
-                "balance_label": "Neutral/Balanced",
-                "perspective_diversity": 0.0,
-                "methodology_notes": "No news articles to analyze"
-            }
+            return NewsReportingAnalysis(
+                overall_score=0.0,
+                overall_label="Neutral/Balanced",
+                story_selection_score=0.0,
+                framing_score=0.0,
+                sourcing_diversity=0.0,
+                sourcing_modifier=1.0,
+                article_analyses=[],
+                metrics={},
+                methodology_notes="No articles to analyze"
+            )
 
-        # Use LLM to analyze balance
-        combined = "\n".join([
-            f"HEADLINE: {a.title}\nSNIPPET: {a.text[:400]}"
-            for a in news_articles[:5]
+        # Step 1: Get per-article structured analysis from LLM
+        article_analyses = self._analyze_articles_structured(news_articles)
+
+        if not article_analyses:
+            return NewsReportingAnalysis(
+                overall_score=0.0,
+                overall_label="Neutral/Balanced",
+                story_selection_score=0.0,
+                framing_score=0.0,
+                sourcing_diversity=0.0,
+                sourcing_modifier=1.0,
+                article_analyses=[],
+                metrics={},
+                methodology_notes="Article analysis failed"
+            )
+
+        # Step 2: Calculate component scores mathematically
+        metrics = self._calculate_metrics(article_analyses)
+
+        # A. Story Selection Score (40%)
+        story_selection_score = self._calculate_story_selection_score(metrics)
+
+        # B. Framing Score (30%)
+        framing_score = self._calculate_framing_score(metrics)
+
+        # C. Sourcing Modifier (affects intensity)
+        sourcing_diversity = metrics["multi_sided"] / max(1, len(article_analyses))
+        sourcing_modifier = self._calculate_sourcing_modifier(sourcing_diversity)
+
+        # Step 3: Calculate final score
+        # Base score combines story selection and framing
+        base_score = (story_selection_score * 0.4) + (framing_score * 0.6)
+
+        # Apply sourcing modifier (amplifies or dampens bias)
+        final_score = base_score * sourcing_modifier
+
+        # Clamp to valid range
+        final_score = max(-10.0, min(10.0, final_score))
+
+        # Get label
+        overall_label = score_to_news_reporting_label(final_score)
+
+        methodology_notes = self._build_methodology_notes(
+            len(article_analyses), metrics, story_selection_score,
+            framing_score, sourcing_diversity, sourcing_modifier
+        )
+
+        return NewsReportingAnalysis(
+            overall_score=round(final_score, 2),
+            overall_label=overall_label,
+            story_selection_score=round(story_selection_score, 2),
+            framing_score=round(framing_score, 2),
+            sourcing_diversity=round(sourcing_diversity, 2),
+            sourcing_modifier=round(sourcing_modifier, 2),
+            article_analyses=article_analyses,
+            metrics=metrics,
+            methodology_notes=methodology_notes
+        )
+
+    def _analyze_articles_structured(
+        self,
+        articles: List[Article]
+    ) -> List[ArticleReportingAnalysis]:
+        """
+        Get per-article structured analysis from LLM.
+
+        For each article, determines:
+        - topic_lean: Does the STORY TOPIC favor a political narrative?
+        - sourcing: Are multiple viewpoints quoted?
+        - framing: Is the language neutral or slanted?
+        """
+        articles_list = "\n".join([
+            f"ID {i}: HEADLINE: {a.title} | SNIPPET: {a.text[:250]}"
+            for i, a in enumerate(articles)
         ])
 
         prompt = f"""
-Analyze the NEWS REPORTING BALANCE of these articles (NOT opinion pieces).
+Analyze these NEWS articles for reporting balance (NOT opinion pieces).
 
-{combined}
+For EACH article, evaluate THREE dimensions:
 
-Consider:
-1. Story selection - Are topics covered that favor one political side?
-2. Framing - How are events described? Neutral language or slanted?
-3. Sources - Are multiple perspectives included?
-4. Omission - Are important viewpoints missing?
+1. TOPIC LEAN (Story Selection):
+   - "left": Topics favoring left narratives (social justice, corporate greed, right-wing scandals, climate crisis framing)
+   - "right": Topics favoring right narratives (crime waves, immigration problems, left-wing scandals, traditional values)
+   - "neutral": Non-political topics (weather, sports, business earnings, neutral event coverage)
 
-Rate the reporting balance:
-- -10: Extreme Left (only left perspectives, right views dismissed)
-- -5: Moderate Left (leans left but includes some balance)
-- 0: Balanced (multiple perspectives fairly represented)
-- +5: Moderate Right (leans right but includes some balance)
-- +10: Extreme Right (only right perspectives, left views dismissed)
+2. SOURCING:
+   - "multi-sided": Quotes or references views from BOTH sides of any conflict/debate
+   - "one-sided": Only quotes/presents one perspective
+   - "no-sources": No attributed sources or quotes
+
+3. FRAMING (Language):
+   - "neutral": Factual, neutral language without loaded terms
+   - "left-leaning": Uses progressive framing, loaded left terms
+   - "right-leaning": Uses conservative framing, loaded right terms
+
+Articles:
+{articles_list}
 
 Return a JSON object:
 {{
-    "balance_score": -10 to +10,
-    "balance_label": "Extreme Left/Strong Left/Moderate Left/Mild Left/Neutral/Balanced/Mild Right/Moderate Right/Strong Right/Extreme Right",
-    "perspective_diversity": 0.0 to 1.0,
-    "evidence": [
-        "Brief observation 1",
-        "Brief observation 2"
-    ],
-    "reasoning": "Why this rating"
+    "items": [
+        {{
+            "id": 0,
+            "topic_lean": "left" | "right" | "neutral",
+            "sourcing": "multi-sided" | "one-sided" | "no-sources",
+            "framing": "neutral" | "left-leaning" | "right-leaning",
+            "evidence": "Brief observation (1 sentence)"
+        }},
+        ...
+    ]
 }}
 
 Return ONLY the JSON object.
@@ -1009,23 +1185,138 @@ Return ONLY the JSON object.
             content = response.content.strip()
             content = content.replace('```json', '').replace('```', '').strip()
             data = json.loads(content)
+            items = data.get("items", [])
 
-            return {
-                "balance_score": float(data.get("balance_score", 0)),
-                "balance_label": data.get("balance_label", "Neutral/Balanced"),
-                "perspective_diversity": float(data.get("perspective_diversity", 0.5)),
-                "evidence": data.get("evidence", []),
-                "methodology_notes": f"Analyzed {len(news_articles)} news articles for balance"
-            }
+            analyses = []
+            for item in items:
+                idx = item.get("id", 0)
+                if idx < len(articles):
+                    analyses.append(ArticleReportingAnalysis(
+                        article_id=idx,
+                        headline=articles[idx].title,
+                        topic_lean=item.get("topic_lean", "neutral"),
+                        sourcing=item.get("sourcing", "no-sources"),
+                        framing=item.get("framing", "neutral"),
+                        evidence=item.get("evidence", "")
+                    ))
+
+            return analyses
 
         except Exception as e:
-            logger.error(f"News reporting analysis failed: {e}")
-            return {
-                "balance_score": 0.0,
-                "balance_label": "Neutral/Balanced",
-                "perspective_diversity": 0.5,
-                "methodology_notes": f"Analysis error: {str(e)}"
-            }
+            logger.error(f"Structured article analysis failed: {e}")
+            return []
+
+    def _calculate_metrics(
+        self,
+        analyses: List[ArticleReportingAnalysis]
+    ) -> Dict[str, int]:
+        """Calculate counts for each dimension."""
+        metrics = {
+            # Topic lean counts
+            "left_topics": sum(1 for a in analyses if a.topic_lean == "left"),
+            "right_topics": sum(1 for a in analyses if a.topic_lean == "right"),
+            "neutral_topics": sum(1 for a in analyses if a.topic_lean == "neutral"),
+            # Sourcing counts
+            "multi_sided": sum(1 for a in analyses if a.sourcing == "multi-sided"),
+            "one_sided": sum(1 for a in analyses if a.sourcing == "one-sided"),
+            "no_sources": sum(1 for a in analyses if a.sourcing == "no-sources"),
+            # Framing counts
+            "neutral_framing": sum(1 for a in analyses if a.framing == "neutral"),
+            "left_framing": sum(1 for a in analyses if a.framing == "left-leaning"),
+            "right_framing": sum(1 for a in analyses if a.framing == "right-leaning"),
+            # Total
+            "total": len(analyses)
+        }
+        return metrics
+
+    def _calculate_story_selection_score(self, metrics: Dict[str, int]) -> float:
+        """
+        Calculate story selection score (-10 to +10).
+
+        Formula:
+        - ratio = (right_topics - left_topics) / (right_topics + left_topics + 1)
+        - weight = political_topics / total_topics (dampens if mostly neutral)
+        - score = ratio * 10 * weight
+        """
+        left = metrics["left_topics"]
+        right = metrics["right_topics"]
+        total = metrics["total"]
+
+        political_total = left + right
+        if political_total == 0:
+            return 0.0
+
+        # Ratio: -1 (all left) to +1 (all right)
+        ratio = (right - left) / (political_total + 1)
+
+        # Weight: dampens score if most stories are neutral
+        weight = political_total / max(1, total)
+
+        return ratio * 10 * weight
+
+    def _calculate_framing_score(self, metrics: Dict[str, int]) -> float:
+        """
+        Calculate framing score (-10 to +10).
+
+        Formula:
+        - ratio = (right_framing - left_framing) / (total_framed + 1)
+        - score = ratio * 10
+        """
+        left = metrics["left_framing"]
+        right = metrics["right_framing"]
+
+        framed_total = left + right
+        if framed_total == 0:
+            return 0.0
+
+        ratio = (right - left) / (framed_total + 1)
+        return ratio * 10
+
+    def _calculate_sourcing_modifier(self, diversity_ratio: float) -> float:
+        """
+        Calculate sourcing modifier based on diversity.
+
+        - diversity < 0.3: Poor sourcing → amplify bias (1.5x)
+        - diversity > 0.7: Good sourcing → reduce bias (0.6x)
+        - else: Moderate → no change (1.0x)
+
+        This captures the methodology concept:
+        - One-sided sourcing makes bias more "extreme"
+        - Multi-sided sourcing makes bias more "mild"
+        """
+        if diversity_ratio < 0.3:
+            return 1.5  # Amplify bias
+        elif diversity_ratio > 0.7:
+            return 0.6  # Reduce bias
+        else:
+            return 1.0  # No modification
+
+    def _build_methodology_notes(
+        self,
+        num_articles: int,
+        metrics: Dict[str, int],
+        selection_score: float,
+        framing_score: float,
+        sourcing_diversity: float,
+        sourcing_modifier: float
+    ) -> str:
+        """Build methodology notes explaining the scoring."""
+        notes = []
+        notes.append(f"Analyzed {num_articles} news articles using 3-component approach:")
+        notes.append("")
+        notes.append(f"1. STORY SELECTION (40%): {selection_score:+.2f}")
+        notes.append(f"   Left topics: {metrics['left_topics']}, Right topics: {metrics['right_topics']}, Neutral: {metrics['neutral_topics']}")
+        notes.append("")
+        notes.append(f"2. FRAMING (30%): {framing_score:+.2f}")
+        notes.append(f"   Left framing: {metrics['left_framing']}, Right framing: {metrics['right_framing']}, Neutral: {metrics['neutral_framing']}")
+        notes.append("")
+        notes.append(f"3. SOURCING MODIFIER: {sourcing_modifier:.2f}x")
+        notes.append(f"   Multi-sided: {metrics['multi_sided']}, One-sided: {metrics['one_sided']}, No sources: {metrics['no_sources']}")
+        notes.append(f"   Diversity ratio: {sourcing_diversity:.0%}")
+        notes.append("")
+        notes.append("Formula: (selection * 0.4 + framing * 0.6) * sourcing_modifier")
+
+        return "\n".join(notes)
 
 
 # =============================================================================

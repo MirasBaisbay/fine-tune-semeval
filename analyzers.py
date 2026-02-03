@@ -39,8 +39,11 @@ from scraper import Article, SiteMetadata
 from local_detector import LocalPropagandaDetector
 from editorial_bias_detection import (
     StructuredEditorialBiasAnalyzer as _StructuredEditorialBiasAnalyzer,
+    StructuredNewsReportingAnalyzer as _StructuredNewsReportingAnalyzer,
     score_to_editorial_label,
-    EditorialBiasAnalysis
+    score_to_news_reporting_label,
+    EditorialBiasAnalysis,
+    NewsReportingAnalysis
 )
 
 local_detector = None
@@ -370,49 +373,50 @@ class NewsReportingBalanceAnalyzer:
     Analyzes straight news reporting balance (15% of Bias Score).
     Measures how well a source reports all sides in its NEWS stories.
     Scale: -10 (Extreme Left) to +10 (Extreme Right)
+
+    Uses a 3-component structured approach:
+    1. Story Selection (40%): Do topics covered favor one political narrative?
+    2. Framing (30%): Is language used neutral or slanted?
+    3. Sourcing Balance (30%): Are multiple viewpoints quoted/represented?
+
+    Methodology:
+    - Per-article structured LLM analysis
+    - Mathematical score calculation from structured data
+    - Transparent and auditable scoring formula
     """
 
+    def __init__(self):
+        self._structured_analyzer = _StructuredNewsReportingAnalyzer()
+
     def analyze(self, articles: List[Article]) -> Dict[str, Any]:
-        # Filter to news articles only (not opinion)
-        news_articles = [a for a in articles if not a.is_opinion][:10]
-        if not news_articles:
-            news_articles = articles[:10]
+        """
+        Analyze news reporting balance using 3-component structured approach.
 
-        combined = "\n".join([f"- {a.title}: {a.text[:300]}" for a in news_articles])
-        prompt = f"""
-        Analyze the STRAIGHT NEWS REPORTING BALANCE of this media outlet.
-        Focus ONLY on news reporting, NOT opinion pieces.
-
-        Consider:
-        - Does the outlet report all sides of issues?
-        - Is there story selection bias?
-        - Are opposing viewpoints included in articles?
-        - Is framing neutral or slanted?
-
-        News Reporting Scale (choose ONE):
-        - Extreme Left Reporting (-10): Exclusively promotes left-leaning perspectives
-        - Strong Left Reporting (-7.5): Frequently promotes left perspectives, limited opposition
-        - Moderate Left Reporting (-5): Often leans left but includes some counterpoints
-        - Mild Left Reporting (-2.5): Slightly favors left framing
-        - Neutral/Balanced (0): Equally represents all perspectives
-        - Mild Right Reporting (+2.5): Slightly favors right framing
-        - Moderate Right Reporting (+5): Often leans right but includes some counterpoints
-        - Strong Right Reporting (+7.5): Frequently promotes right perspectives, limited opposition
-        - Extreme Right Reporting (+10): Exclusively promotes right-leaning perspectives
-
-        News content to analyze:
-        {combined}
-
-        Return ONLY the category name exactly as written above (e.g., "Neutral/Balanced").
+        Returns:
+            dict with:
+            - label: MBFC news reporting balance label
+            - score: -10 to +10 score
+            - details: Component breakdown and metrics
         """
         try:
-            res = llm.invoke([HumanMessage(content=prompt)])
-            label = res.content.strip().replace("'", "").replace('"', '')
-            score = NEWS_REPORTING_SCALE.get(label, 0.0)
-            return {"label": label, "score": score}
+            # Use structured analyzer (filters to news articles only)
+            result: NewsReportingAnalysis = self._structured_analyzer.analyze(articles)
+
+            return {
+                "label": result.overall_label,
+                "score": result.overall_score,
+                "details": {
+                    "story_selection_score": result.story_selection_score,
+                    "framing_score": result.framing_score,
+                    "sourcing_diversity": result.sourcing_diversity,
+                    "sourcing_modifier": result.sourcing_modifier,
+                    "metrics": result.metrics,
+                    "methodology": result.methodology_notes
+                }
+            }
         except Exception as e:
             logger.error(f"News reporting analysis failed: {e}")
-            return {"label": "Neutral/Balanced", "score": 0.0}
+            return {"label": "Neutral/Balanced", "score": 0.0, "details": {}}
 
 
 class EditorialBiasAnalyzer:
