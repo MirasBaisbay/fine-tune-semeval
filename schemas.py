@@ -131,11 +131,22 @@ class TrafficEstimate(BaseModel):
     )
 
 
+class TrafficSource(str, Enum):
+    """Source of traffic data."""
+
+    TRANCO = "Tranco"  # Deterministic ranking from Tranco list
+    LLM = "LLM"  # LLM-parsed from search results
+    FALLBACK = "Fallback"  # Default when no data available
+
+
 class TrafficData(BaseModel):
     """
     Complete traffic and longevity data for a domain.
 
-    Combines deterministic WHOIS data with LLM-parsed traffic estimates.
+    Combines deterministic data from multiple sources:
+    - WHOIS for domain age
+    - Tranco list for deterministic traffic ranking (when available)
+    - LLM-parsed search results as fallback
     """
 
     domain: str = Field(
@@ -162,12 +173,24 @@ class TrafficData(BaseModel):
         le=1.0,
         description="Confidence in traffic tier estimate"
     )
+    traffic_source: TrafficSource = Field(
+        default=TrafficSource.FALLBACK,
+        description="Source of the traffic data (Tranco, LLM, or Fallback)"
+    )
+    tranco_rank: Optional[int] = Field(
+        default=None,
+        description="Tranco list rank if found (1 = most popular)"
+    )
     whois_success: bool = Field(
         description="Whether WHOIS lookup was successful"
     )
+    whois_error: Optional[str] = Field(
+        default=None,
+        description="WHOIS error message if lookup failed"
+    )
     traffic_search_snippet: Optional[str] = Field(
         default=None,
-        description="The search snippet used for traffic estimation"
+        description="The search snippet used for traffic estimation (LLM method only)"
     )
 
 
