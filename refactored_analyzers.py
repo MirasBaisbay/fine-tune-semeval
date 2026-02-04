@@ -29,6 +29,7 @@ from schemas import (
     MediaTypeClassification,
     TrafficData,
     TrafficEstimate,
+    TrafficSource,
     TrafficTier,
 )
 
@@ -196,20 +197,44 @@ Based on the writing style, tone, and content, classify this article."""
 
 
 # =============================================================================
+# Tranco List Configuration
+# =============================================================================
+
+# Default Tranco list location and URL
+TRANCO_DEFAULT_PATH = "tranco_top1m.csv"
+TRANCO_DOWNLOAD_URL = "https://tranco-list.eu/download/Q4PJN/1000000"  # Top 1M list
+
+# Default tier thresholds based on Tranco rank
+DEFAULT_TRANCO_THRESHOLDS = {
+    "HIGH": 10_000,      # Rank < 10,000 = HIGH traffic
+    "MEDIUM": 100_000,   # Rank < 100,000 = MEDIUM traffic
+    "LOW": 1_000_000,    # Rank < 1,000,000 = LOW traffic
+}
+
+
+# =============================================================================
 # TrafficLongevityAnalyzer
 # =============================================================================
 
 
 class TrafficLongevityAnalyzer:
     """
-    Analyzes domain traffic and longevity using deterministic and LLM methods.
+    Analyzes domain traffic and longevity using a hybrid deterministic + LLM approach.
 
-    Domain age is retrieved deterministically via python-whois.
-    Traffic estimation uses DuckDuckGo search + LLM parsing of results.
+    This analyzer implements a two-tier strategy:
+    1. **Deterministic (Tranco)**: First checks the Tranco Top 1M list for instant,
+       reproducible ranking data. This replaces the deprecated Alexa Rank.
+    2. **LLM Fallback**: For domains not in Tranco, searches for traffic data
+       via DuckDuckGo and uses LLM to parse the results.
+
+    Domain age is always retrieved deterministically via python-whois.
 
     Attributes:
         llm: LangChain LLM with structured output for traffic parsing
         search: DuckDuckGo search instance
+        tranco_data: Dict mapping domain -> rank (loaded from Tranco list)
+        tranco_loaded: Whether Tranco list is available
+        thresholds: Dict mapping tier names to rank cutoffs
     """
 
     TRAFFIC_PARSE_PROMPT = """You are analyzing search results to estimate website traffic.
@@ -239,7 +264,7 @@ UNKNOWN: If the search results don't provide enough information
 
 Look for indicators like:
 - Explicit traffic numbers (e.g., "10M monthly visits")
-- Alexa/Similarweb rankings
+- Tranco/Similarweb/Semrush rankings
 - Descriptions of reach/popularity
 - Comparisons to known sites"""
 
@@ -247,6 +272,9 @@ Look for indicators like:
         self,
         model: str = "gpt-4o-mini",
         temperature: float = 0.0,
+        tranco_path: Optional[str] = None,
+        auto_download_tranco: bool = True,
+        thresholds: Optional[dict[str, int]] = None,
     ):
         """
         Initialize the TrafficLongevityAnalyzer.
@@ -254,27 +282,183 @@ Look for indicators like:
         Args:
             model: OpenAI model to use
             temperature: LLM temperature (0 for deterministic)
+            tranco_path: Path to Tranco CSV file (default: tranco_top1m.csv)
+            auto_download_tranco: Whether to auto-download Tranco if missing
+            thresholds: Custom tier thresholds dict (keys: HIGH, MEDIUM, LOW)
         """
         self.llm = get_llm(model, temperature).with_structured_output(TrafficEstimate)
         self.search = DDGS()
+        self.thresholds = thresholds or DEFAULT_TRANCO_THRESHOLDS.copy()
+
+        # Initialize Tranco data
+        self.tranco_data: dict[str, int] = {}
+        self.tranco_loaded = False
+        self._tranco_path = tranco_path or TRANCO_DEFAULT_PATH
+
+        # Try to load Tranco list
+        self._load_tranco_list(auto_download=auto_download_tranco)
+
+    def _load_tranco_list(self, auto_download: bool = True) -> bool:
+        """
+        Load the Tranco top 1M list into memory.
+
+        Args:
+            auto_download: Whether to download if file doesn't exist
+
+        Returns:
+            True if loaded successfully, False otherwise
+        """
+        import os
+
+        tranco_path = self._tranco_path
+
+        # Check if file exists
+        if not os.path.exists(tranco_path):
+            if auto_download:
+                logger.info(f"Tranco list not found at {tranco_path}, downloading...")
+                if not self._download_tranco_list(tranco_path):
+                    logger.warning("Failed to download Tranco list, will use LLM fallback only")
+                    return False
+            else:
+                logger.warning(f"Tranco list not found at {tranco_path}, will use LLM fallback only")
+                return False
+
+        # Load CSV into dict (rank -> domain mapping, we need domain -> rank)
+        try:
+            with open(tranco_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or "," not in line:
+                        continue
+                    parts = line.split(",", 1)
+                    if len(parts) == 2:
+                        rank_str, domain = parts
+                        try:
+                            rank = int(rank_str)
+                            # Store domain -> rank mapping
+                            self.tranco_data[domain.lower()] = rank
+                        except ValueError:
+                            continue
+
+            self.tranco_loaded = len(self.tranco_data) > 0
+            if self.tranco_loaded:
+                logger.info(f"Loaded Tranco list with {len(self.tranco_data):,} domains")
+            return self.tranco_loaded
+
+        except Exception as e:
+            logger.error(f"Failed to load Tranco list: {e}")
+            return False
+
+    def _download_tranco_list(self, save_path: str) -> bool:
+        """
+        Download the Tranco top 1M list.
+
+        Args:
+            save_path: Path to save the downloaded file
+
+        Returns:
+            True if download successful, False otherwise
+        """
+        import urllib.request
+        import zipfile
+        import io
+
+        try:
+            logger.info(f"Downloading Tranco list from {TRANCO_DOWNLOAD_URL}...")
+
+            # Download the file
+            with urllib.request.urlopen(TRANCO_DOWNLOAD_URL, timeout=60) as response:
+                content = response.read()
+
+            # Check if it's a zip file (Tranco sometimes serves zipped)
+            if content[:2] == b"PK":  # ZIP file magic bytes
+                with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                    # Extract the first CSV file
+                    for name in zf.namelist():
+                        if name.endswith(".csv"):
+                            with zf.open(name) as csv_file:
+                                content = csv_file.read()
+                            break
+
+            # Save to disk
+            with open(save_path, "wb") as f:
+                f.write(content)
+
+            logger.info(f"Successfully downloaded Tranco list to {save_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to download Tranco list: {e}")
+            return False
+
+    def _get_tranco_rank(self, domain: str) -> Optional[int]:
+        """
+        Look up a domain's rank in the Tranco list.
+
+        Args:
+            domain: The domain to look up (e.g., "bbc.com")
+
+        Returns:
+            Rank (1 = most popular) or None if not found
+        """
+        if not self.tranco_loaded:
+            return None
+
+        # Normalize domain
+        domain_lower = domain.lower().strip()
+
+        # Direct lookup
+        if domain_lower in self.tranco_data:
+            return self.tranco_data[domain_lower]
+
+        # Try with www prefix
+        if not domain_lower.startswith("www."):
+            www_domain = f"www.{domain_lower}"
+            if www_domain in self.tranco_data:
+                return self.tranco_data[www_domain]
+
+        return None
+
+    def _rank_to_tier(self, rank: int) -> TrafficTier:
+        """
+        Convert a Tranco rank to a traffic tier.
+
+        Args:
+            rank: The Tranco rank (1 = most popular)
+
+        Returns:
+            TrafficTier based on configured thresholds
+        """
+        if rank < self.thresholds["HIGH"]:
+            return TrafficTier.HIGH
+        elif rank < self.thresholds["MEDIUM"]:
+            return TrafficTier.MEDIUM
+        elif rank < self.thresholds["LOW"]:
+            return TrafficTier.LOW
+        else:
+            return TrafficTier.MINIMAL
 
     def _extract_domain(self, url: str) -> str:
         """Extract the root domain from a URL."""
         parsed = urlparse(url if url.startswith("http") else f"https://{url}")
         domain = parsed.netloc or parsed.path
-        # Remove www. prefix
+        # Remove www. prefix for consistency
         domain = re.sub(r"^www\.", "", domain)
-        return domain
+        # Remove any path components
+        domain = domain.split("/")[0]
+        return domain.lower()
 
-    def _get_whois_data(self, domain: str) -> tuple[Optional[date], bool]:
+    def _get_whois_data(self, domain: str) -> tuple[Optional[date], bool, Optional[str]]:
         """
         Get domain creation date from WHOIS.
+
+        Uses specific exception handling for better error diagnostics.
 
         Args:
             domain: The domain to look up
 
         Returns:
-            Tuple of (creation_date, success_flag)
+            Tuple of (creation_date, success_flag, error_message)
         """
         try:
             w = whois.whois(domain)
@@ -289,13 +473,31 @@ Look for indicators like:
                 creation_date = creation_date.date()
 
             if creation_date:
-                return creation_date, True
+                return creation_date, True, None
 
-            return None, False
+            return None, False, "No creation date in WHOIS response"
+
+        except whois.parser.PywhoisError as e:
+            # Specific WHOIS parsing error
+            error_msg = f"WHOIS parsing error: {str(e)}"
+            logger.warning(f"{error_msg} for {domain}")
+            return None, False, error_msg
+
+        except ConnectionError as e:
+            error_msg = f"WHOIS connection error: {str(e)}"
+            logger.warning(f"{error_msg} for {domain}")
+            return None, False, error_msg
+
+        except TimeoutError as e:
+            error_msg = f"WHOIS timeout: {str(e)}"
+            logger.warning(f"{error_msg} for {domain}")
+            return None, False, error_msg
 
         except Exception as e:
-            logger.warning(f"WHOIS lookup failed for {domain}: {e}")
-            return None, False
+            # Catch-all for other errors
+            error_msg = f"WHOIS error ({type(e).__name__}): {str(e)}"
+            logger.warning(f"{error_msg} for {domain}")
+            return None, False, error_msg
 
     def _calculate_age_years(self, creation_date: Optional[date]) -> Optional[float]:
         """Calculate domain age in years from creation date."""
@@ -309,19 +511,22 @@ Look for indicators like:
         """
         Search for traffic information about a domain.
 
+        Uses an improved query targeting traffic aggregator sites.
+
         Args:
             domain: The domain to search for
 
         Returns:
             Search result snippet or None
         """
-        query = f"{domain} monthly visits similarweb"
+        # Improved query per Gemini's suggestion - targets multiple traffic data sources
+        query = f"{domain} traffic stats similarweb hypestat semrush"
         try:
-            results = list(self.search.text(query, max_results=3))
+            results = list(self.search.text(query, max_results=5))
             if results:
                 # Combine top results into a snippet
                 snippets = []
-                for r in results[:3]:
+                for r in results[:5]:
                     title = r.get("title", "")
                     body = r.get("body", "")
                     snippets.append(f"{title}: {body}")
@@ -369,7 +574,12 @@ Determine the traffic tier based on any traffic data, rankings, or popularity in
 
     def analyze(self, url_or_domain: str) -> TrafficData:
         """
-        Analyze traffic and longevity for a domain.
+        Analyze traffic and longevity for a domain using hybrid approach.
+
+        Strategy:
+        1. Always get WHOIS data for domain age (deterministic)
+        2. Check Tranco list first (deterministic, instant, high confidence)
+        3. If not in Tranco, fall back to DuckDuckGo search + LLM parsing
 
         Args:
             url_or_domain: URL or domain to analyze
@@ -379,34 +589,77 @@ Determine the traffic tier based on any traffic data, rankings, or popularity in
         """
         domain = self._extract_domain(url_or_domain)
 
-        # Get deterministic WHOIS data
-        creation_date, whois_success = self._get_whois_data(domain)
+        # 1. Get deterministic WHOIS data
+        creation_date, whois_success, whois_error = self._get_whois_data(domain)
         age_years = self._calculate_age_years(creation_date)
 
-        # Search for traffic information
-        traffic_snippet = self._search_traffic_info(domain)
+        # 2. Try Tranco lookup first (deterministic)
+        tranco_rank = self._get_tranco_rank(domain)
 
-        # Parse traffic with LLM
-        if traffic_snippet:
-            traffic_estimate = self._parse_traffic_with_llm(domain, traffic_snippet)
-        else:
-            traffic_estimate = TrafficEstimate(
-                traffic_tier=TrafficTier.UNKNOWN,
-                monthly_visits_estimate=None,
-                confidence=0.0,
-                reasoning="No search results found for traffic estimation",
+        if tranco_rank is not None:
+            # Found in Tranco - use deterministic ranking
+            traffic_tier = self._rank_to_tier(tranco_rank)
+            return TrafficData(
+                domain=domain,
+                creation_date=creation_date,
+                age_years=age_years,
+                traffic_tier=traffic_tier,
+                monthly_visits_estimate=None,  # Tranco doesn't provide this
+                traffic_confidence=1.0,  # Deterministic = 100% confidence
+                traffic_source=TrafficSource.TRANCO,
+                tranco_rank=tranco_rank,
+                whois_success=whois_success,
+                whois_error=whois_error,
+                traffic_search_snippet=None,
             )
 
+        # 3. Fall back to LLM-based estimation
+        traffic_snippet = self._search_traffic_info(domain)
+
+        if traffic_snippet:
+            traffic_estimate = self._parse_traffic_with_llm(domain, traffic_snippet)
+            return TrafficData(
+                domain=domain,
+                creation_date=creation_date,
+                age_years=age_years,
+                traffic_tier=traffic_estimate.traffic_tier,
+                monthly_visits_estimate=traffic_estimate.monthly_visits_estimate,
+                traffic_confidence=traffic_estimate.confidence,
+                traffic_source=TrafficSource.LLM,
+                tranco_rank=None,
+                whois_success=whois_success,
+                whois_error=whois_error,
+                traffic_search_snippet=traffic_snippet[:500] if traffic_snippet else None,
+            )
+
+        # 4. No data available - return fallback
         return TrafficData(
             domain=domain,
             creation_date=creation_date,
             age_years=age_years,
-            traffic_tier=traffic_estimate.traffic_tier,
-            monthly_visits_estimate=traffic_estimate.monthly_visits_estimate,
-            traffic_confidence=traffic_estimate.confidence,
+            traffic_tier=TrafficTier.UNKNOWN,
+            monthly_visits_estimate=None,
+            traffic_confidence=0.0,
+            traffic_source=TrafficSource.FALLBACK,
+            tranco_rank=None,
             whois_success=whois_success,
-            traffic_search_snippet=traffic_snippet[:500] if traffic_snippet else None,
+            whois_error=whois_error,
+            traffic_search_snippet=None,
         )
+
+    def get_tranco_stats(self) -> dict:
+        """
+        Get statistics about the loaded Tranco list.
+
+        Returns:
+            Dict with Tranco list stats
+        """
+        return {
+            "loaded": self.tranco_loaded,
+            "total_domains": len(self.tranco_data),
+            "thresholds": self.thresholds,
+            "path": self._tranco_path,
+        }
 
 
 # =============================================================================
@@ -652,14 +905,20 @@ def classify_media_type(url_or_domain: str) -> MediaTypeClassification:
 if __name__ == "__main__":
     import sys
 
+    # Configure logging for demo
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     # Example usage
-    print("=" * 60)
+    print("=" * 70)
     print("REFACTORED ANALYZERS - DEMO")
-    print("=" * 60)
+    print("=" * 70)
 
     # Test OpinionAnalyzer
     print("\n1. OpinionAnalyzer Test")
-    print("-" * 40)
+    print("-" * 50)
     sample_title = "The Economic Impact of Climate Change"
     sample_text = """
     Climate change is causing significant economic disruption across multiple sectors.
@@ -675,21 +934,43 @@ if __name__ == "__main__":
     print(f"Confidence: {result.confidence:.2f}")
     print(f"Reasoning: {result.reasoning}")
 
-    # Test TrafficLongevityAnalyzer
-    print("\n2. TrafficLongevityAnalyzer Test")
-    print("-" * 40)
-    test_domain = "bbc.com"
+    # Test TrafficLongevityAnalyzer with hybrid approach
+    print("\n2. TrafficLongevityAnalyzer Test (Hybrid Tranco + LLM)")
+    print("-" * 50)
+
+    # Initialize analyzer (will auto-download Tranco if needed)
     traffic_analyzer = TrafficLongevityAnalyzer()
-    traffic_data = traffic_analyzer.analyze(test_domain)
-    print(f"Domain: {traffic_data.domain}")
-    print(f"Creation Date: {traffic_data.creation_date}")
-    print(f"Age (years): {traffic_data.age_years}")
-    print(f"Traffic Tier: {traffic_data.traffic_tier.value}")
-    print(f"WHOIS Success: {traffic_data.whois_success}")
+
+    # Show Tranco stats
+    tranco_stats = traffic_analyzer.get_tranco_stats()
+    print(f"\nTranco List Status:")
+    print(f"  Loaded: {tranco_stats['loaded']}")
+    print(f"  Domains: {tranco_stats['total_domains']:,}")
+    print(f"  Thresholds: HIGH < {tranco_stats['thresholds']['HIGH']:,}, "
+          f"MEDIUM < {tranco_stats['thresholds']['MEDIUM']:,}, "
+          f"LOW < {tranco_stats['thresholds']['LOW']:,}")
+
+    # Test with major domain (should be in Tranco)
+    test_domains = ["bbc.com", "nytimes.com", "obscure-local-news-site.com"]
+
+    for test_domain in test_domains:
+        print(f"\n  Testing: {test_domain}")
+        traffic_data = traffic_analyzer.analyze(test_domain)
+        print(f"    Domain: {traffic_data.domain}")
+        print(f"    Traffic Source: {traffic_data.traffic_source.value}")
+        if traffic_data.tranco_rank:
+            print(f"    Tranco Rank: #{traffic_data.tranco_rank:,}")
+        print(f"    Traffic Tier: {traffic_data.traffic_tier.value}")
+        print(f"    Confidence: {traffic_data.traffic_confidence:.2f}")
+        print(f"    Creation Date: {traffic_data.creation_date}")
+        print(f"    Age (years): {traffic_data.age_years}")
+        print(f"    WHOIS Success: {traffic_data.whois_success}")
+        if traffic_data.whois_error:
+            print(f"    WHOIS Error: {traffic_data.whois_error}")
 
     # Test MediaTypeAnalyzer
     print("\n3. MediaTypeAnalyzer Test")
-    print("-" * 40)
+    print("-" * 50)
     test_outlet = "nytimes.com"
     media_analyzer = MediaTypeAnalyzer()
     media_result = media_analyzer.analyze(test_outlet)
@@ -698,6 +979,6 @@ if __name__ == "__main__":
     print(f"Confidence: {media_result.confidence:.2f}")
     print(f"Reasoning: {media_result.reasoning}")
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("DEMO COMPLETE")
-    print("=" * 60)
+    print("=" * 70)
