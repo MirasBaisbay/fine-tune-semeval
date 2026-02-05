@@ -206,14 +206,23 @@ Include up to 3-5 most relevant and credible analyses."""
         """
         Research outlet history and founding information.
 
+        First tries to find "about us" pages from the outlet itself,
+        then falls back to Wikipedia if no results found.
+
         Args:
             outlet_name: Human-readable outlet name
 
         Returns:
             HistoryLLMOutput with extracted history
         """
-        query = f'"{outlet_name}" founded history about us media news organization'
+        # First try: about us pages from the outlet itself
+        query = f'"{outlet_name}" about us founded history media news organization'
         snippets = self._search(query)
+
+        # Fallback to Wikipedia if no results
+        if not snippets:
+            query = f'"{outlet_name}" wikipedia founded history media news organization'
+            snippets = self._search(query)
 
         if not snippets:
             return HistoryLLMOutput(
