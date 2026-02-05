@@ -1,0 +1,272 @@
+{
+  "summary": {
+    "total_sources": 10,
+    "successful_evaluations": 9,
+    "failed_evaluations": 1,
+    "bias_mae": 0.8888888888888888,
+    "factuality_mae": 0.8888888888888888,
+    "combined_mae": 0.8888888888888888
+  },
+  "results": [
+    {
+      "name": "Intrepid Report",
+      "source_url": "http://www.intrepidreport.com/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -6.8,
+        "bias_ordinal": 1,
+        "factuality_label": "MIXED",
+        "factuality_score": 5.0,
+        "factuality_ordinal": 3
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "Mixed",
+        "factuality_score": 5.5,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 0
+      }
+    },
+    {
+      "name": "Sunrise Movement",
+      "source_url": "https://www.sunrisemovement.org/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 18,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -7.8,
+        "bias_ordinal": 1,
+        "factuality_label": "MIXED",
+        "factuality_score": 4.9,
+        "factuality_ordinal": 3
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "High",
+        "factuality_score": 4.0,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 0
+      }
+    },
+    {
+      "name": "The Nerd Reich",
+      "source_url": "https://www.thenerdreich.com/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 18,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -6.8,
+        "bias_ordinal": 1,
+        "factuality_label": "MOSTLY FACTUAL",
+        "factuality_score": 3.3,
+        "factuality_ordinal": 2
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "Mixed",
+        "factuality_score": 5.0,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 1
+      }
+    },
+    {
+      "name": "Meduza",
+      "source_url": "https://meduza.io/en",
+      "success": false,
+      "error_message": "No articles scraped",
+      "articles_analyzed": 0,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": null,
+        "bias_ordinal": 1,
+        "factuality_label": "HIGH",
+        "factuality_score": null,
+        "factuality_ordinal": 1
+      },
+      "predictions": null,
+      "errors": null
+    },
+    {
+      "name": "Institute for Policy Studies",
+      "source_url": "https://ips-dc.org/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": 8.0,
+        "bias_ordinal": 1,
+        "factuality_label": "MOSTLY FACTUAL",
+        "factuality_score": 4.1,
+        "factuality_ordinal": 2
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "High",
+        "factuality_score": 4.0,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 1
+      }
+    },
+    {
+      "name": "Slate",
+      "source_url": "https://slate.com",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -6.4,
+        "bias_ordinal": 1,
+        "factuality_label": "MOSTLY FACTUAL",
+        "factuality_score": 2.7,
+        "factuality_ordinal": 2
+      },
+      "predictions": {
+        "bias_label": "Left",
+        "bias_score": -6.0,
+        "bias_ordinal": 1,
+        "factuality_label": "Low",
+        "factuality_score": 6.5,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 0,
+        "factuality_error": 1
+      }
+    },
+    {
+      "name": "The Communist",
+      "source_url": "https://communist.red/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "EXTREME LEFT",
+        "bias_score": -9.5,
+        "bias_ordinal": 0,
+        "factuality_label": "MIXED",
+        "factuality_score": 4.9,
+        "factuality_ordinal": 3
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "High",
+        "factuality_score": 4.0,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 0,
+        "factuality_error": 0
+      }
+    },
+    {
+      "name": "Heimildin",
+      "source_url": "https://heimildin.is/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -5.8,
+        "bias_ordinal": 1,
+        "factuality_label": "HIGH",
+        "factuality_score": 1.5,
+        "factuality_ordinal": 1
+      },
+      "predictions": {
+        "bias_label": "Least Biased",
+        "bias_score": 0.0,
+        "bias_ordinal": 3,
+        "factuality_label": "High",
+        "factuality_score": 4.0,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 2,
+        "factuality_error": 2
+      }
+    },
+    {
+      "name": "The American Prospect",
+      "source_url": "https://prospect.org",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 20,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": -6.6,
+        "bias_ordinal": 1,
+        "factuality_label": "HIGH",
+        "factuality_score": 1.4,
+        "factuality_ordinal": 1
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "Mixed",
+        "factuality_score": 5.5,
+        "factuality_ordinal": 3
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 2
+      }
+    },
+    {
+      "name": "National Democratic Training Committee (NDTC)",
+      "source_url": "https://traindemocrats.org/",
+      "success": true,
+      "error_message": null,
+      "articles_analyzed": 12,
+      "ground_truth": {
+        "bias_label": "LEFT",
+        "bias_score": null,
+        "bias_ordinal": 1,
+        "factuality_label": "HIGH",
+        "factuality_score": null,
+        "factuality_ordinal": 1
+      },
+      "predictions": {
+        "bias_label": "Extreme Left",
+        "bias_score": -9.0,
+        "bias_ordinal": 0,
+        "factuality_label": "High",
+        "factuality_score": 3.5,
+        "factuality_ordinal": 2
+      },
+      "errors": {
+        "bias_error": 1,
+        "factuality_error": 1
+      }
+    }
+  ]
+}

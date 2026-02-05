@@ -472,17 +472,19 @@ Look for indicators like:
     def _get_whois_data(self, domain: str) -> tuple[Optional[date], bool, Optional[str]]:
         """
         Get domain creation date from WHOIS.
-
-        Uses specific exception handling for better error diagnostics.
-
-        Args:
-            domain: The domain to look up
-
-        Returns:
-            Tuple of (creation_date, success_flag, error_message)
+        Compatible with both 'whois' and 'python-whois' packages.
         """
         try:
-            w = whois.whois(domain)
+            # Try python-whois syntax first
+            if hasattr(whois, 'whois'):
+                w = whois.whois(domain)
+            # Try standard whois syntax second
+            elif hasattr(whois, 'query'):
+                w = whois.query(domain)
+            else:
+                return None, False, "Unknown whois library installed"
+
+            # Extract creation date safely
             creation_date = w.creation_date
 
             # Handle list of dates (some registrars return multiple)
@@ -492,27 +494,19 @@ Look for indicators like:
             # Convert datetime to date if needed
             if isinstance(creation_date, datetime):
                 creation_date = creation_date.date()
+            
+            # Handle string dates (common in 'whois' package)
+            if isinstance(creation_date, str):
+                from dateutil import parser
+                try:
+                    creation_date = parser.parse(creation_date).date()
+                except:
+                    pass
 
             if creation_date:
                 return creation_date, True, None
 
             return None, False, "No creation date in WHOIS response"
-
-        except AttributeError as e:
-            # Handle cases where WHOIS response is malformed
-            error_msg = f"WHOIS attribute error: {str(e)}"
-            logger.warning(f"{error_msg} for {domain}")
-            return None, False, error_msg
-
-        except ConnectionError as e:
-            error_msg = f"WHOIS connection error: {str(e)}"
-            logger.warning(f"{error_msg} for {domain}")
-            return None, False, error_msg
-
-        except TimeoutError as e:
-            error_msg = f"WHOIS timeout: {str(e)}"
-            logger.warning(f"{error_msg} for {domain}")
-            return None, False, error_msg
 
         except Exception as e:
             # Catch-all for other errors
@@ -1246,31 +1240,24 @@ Extract all fact check findings related to this outlet. Count how many have nega
 
     def _calculate_score(self, failed_count: int, total_count: int) -> float:
         """
-        Calculate MBFC-style score (0=excellent, 10=poor) based on failed checks.
-
-        Args:
-            failed_count: Number of failed fact checks
-            total_count: Total number of fact checks
-
-        Returns:
-            Score from 0.0 to 10.0
+        Calculate MBFC-style score (0=excellent, 10=poor).
         """
-        if total_count == 0:
-            # No fact checks found - neutral score
-            return 5.0
-
-        if failed_count == 0:
-            # No failed checks - excellent
+        # If we found fact checks, and NONE were failed, that is Excellent.
+        if total_count > 0 and failed_count == 0:
             return 0.0
-        elif failed_count <= 2:
-            # Few failed checks
-            return 2.0 + (failed_count * 1.0)
-        elif failed_count <= 5:
-            # Moderate failed checks
-            return 4.0 + (failed_count - 2) * 1.0
+            
+        # If we found NO fact checks at all, we shouldn't punish them with 5.0.
+        # We assume innocent until proven guilty, but with caution.
+        if total_count == 0:
+            return 2.0  # Default to "High" (2.0) instead of "Mixed" (5.0)
+
+        # Existing logic for failed checks
+        if failed_count <= 2:
+            return 4.0 # High/Mostly Factual
+        elif failed_count <= 4:
+            return 6.0 # Mixed
         else:
-            # Many failed checks
-            return min(10.0, 7.0 + (failed_count - 5) * 0.5)
+            return 10.0 # Low/Very Low
 
     def analyze(self, url_or_domain: str, outlet_name: str | None = None) -> FactCheckAnalysisResult:
         """
@@ -1331,232 +1318,163 @@ Extract all fact check findings related to this outlet. Count how many have nega
 
 class SourcingAnalyzer:
     """
-    Analyzes sourcing quality in articles by examining cited links.
-
-    This analyzer replaces domain whitelist approaches with LLM assessment
-    of extracted source links. It evaluates the quality and diversity of
-    sources cited in articles.
-
-    Strategy:
-    1. Extract all hyperlinks from article text
-    2. If no links found, return default mediocre score (5.0)
-    3. Extract unique domains from links
-    4. Pass domains to LLM for quality assessment
-    5. Calculate score based on quality mix
-
-    Quality Tiers:
-    - PRIMARY: Official documents, studies, original sources (best)
-    - WIRE_SERVICE: Reuters, AP, AFP (excellent)
-    - MAJOR_OUTLET: NYT, BBC, WSJ (good)
-    - CREDIBLE: Other established outlets (acceptable)
-    - UNKNOWN: Cannot assess (neutral)
-    - QUESTIONABLE: Known unreliable sources (poor)
-
-    Attributes:
-        llm: LangChain LLM with structured output for assessment
+    Analyzes sourcing quality by examining BOTH cited links AND textual attributions.
     """
 
-    SYSTEM_PROMPT = """You are an expert at evaluating news source quality.
+    SYSTEM_PROMPT = """You are an expert at evaluating news source quality and attribution standards.
 
-Your task is to assess the quality of sources cited in news articles based on their domains.
+Your task is to analyze news articles to determine how well they source their claims.
+You must look for two things:
+1. **Hyperlinks**: Domains linked directly in the text.
+2. **Textual Citations**: Explicit mentions of sources (e.g., "According to The New York Times", "A study by Harvard University").
 
-Quality Tiers (from best to worst):
+### QUALITY TIERS (Assess identified sources):
+- **PRIMARY**: Official docs, court filings, direct research studies, government data (.gov).
+- **WIRE_SERVICE**: Reuters, AP, AFP, UPI.
+- **MAJOR_OUTLET**: Established legacy media (NYT, BBC, WSJ, WaPo).
+- **CREDIBLE**: Regional papers, specialized trade journals.
+- **QUESTIONABLE**: State propaganda, conspiracy sites, tabloids, unverified blogs.
 
-PRIMARY: Original/primary sources
-- Government websites (.gov)
-- Academic institutions (.edu)
-- Official company websites for company news
-- Published research papers
-- Court documents
-- Original data sources
+### VAGUE SOURCING (The "Weasel Words" Check):
+You must also detect **Vague Sourcing** or "Anonymous Authority".
+- BAD: "Critics say...", "Experts agree...", "British scientists claim...", "Sources close to the matter..." (without explaining why they are anonymous).
+- BAD: "Many people are saying...", "It is reported that..." (Passive voice without agent).
 
-WIRE_SERVICE: Major wire services (highly credible)
-- reuters.com
-- apnews.com (Associated Press)
-- afp.com (Agence France-Presse)
-- upi.com
-
-MAJOR_OUTLET: Established major news outlets (good)
-- nytimes.com, washingtonpost.com, wsj.com
-- bbc.com, theguardian.com
-- cnn.com, nbcnews.com, abcnews.go.com
-- Other nationally/internationally recognized outlets
-
-CREDIBLE: Other established outlets with editorial standards
-- Regional newspapers
-- Established specialty publications
-- Well-known trade publications
-
-UNKNOWN: Cannot assess quality
-- Unfamiliar domains
-- Personal websites without clear affiliation
-- Domains you don't recognize
-
-QUESTIONABLE: Known problematic sources
-- Sites known for misinformation
-- Highly partisan sites with documented accuracy issues
-- Satire sites (when not clearly labeled)
-- Anonymous blogs without accountability
-
-Assess each domain independently. For ambiguous cases, use UNKNOWN."""
+### INSTRUCTIONS:
+1. Analyze the provided source links and article snippets.
+2. Extract named sources found in the text that weren't hyperlinked.
+3. Identify if the text relies heavily on vague/weasel sourcing.
+4. Provide a final sourcing score (0=Excellent/High Transparency, 10=Poor/No Sourcing).
+"""
 
     def __init__(
         self,
         model: str = "gpt-4o-mini",
         temperature: float = 0.0,
     ):
-        """
-        Initialize the SourcingAnalyzer.
-
-        Args:
-            model: OpenAI model to use
-            temperature: LLM temperature (0 for deterministic)
-        """
         self.llm = get_llm(model, temperature).with_structured_output(SourcingLLMOutput)
 
     def _extract_links(self, text: str) -> list[str]:
-        """
-        Extract all URLs from article text.
-
-        Args:
-            text: Article text potentially containing URLs
-
-        Returns:
-            List of URLs found
-        """
-        # Match http/https URLs
+        """Extract all URLs from article text."""
         url_pattern = r'https?://[^\s<>"\')\]]+[^\s<>"\')\].,;:!?]'
-        urls = re.findall(url_pattern, text)
-        return urls
+        return re.findall(url_pattern, text)
 
     def _extract_domains(self, urls: list[str]) -> list[str]:
-        """
-        Extract unique domains from URLs, filtering out common non-source domains.
-
-        Args:
-            urls: List of URLs
-
-        Returns:
-            List of unique source domains
-        """
-        # Domains to exclude (social media, etc.)
+        """Extract unique domains from URLs."""
         excluded_domains = {
             "twitter.com", "x.com", "facebook.com", "instagram.com",
             "youtube.com", "tiktok.com", "linkedin.com", "reddit.com",
-            "t.co",  # Twitter short links
+            "t.co", "google.com"
         }
-
         domains = set()
         for url in urls:
             try:
                 parsed = urlparse(url)
                 domain = parsed.netloc.lower()
                 domain = re.sub(r"^www\.", "", domain)
-
                 if domain and domain not in excluded_domains:
                     domains.add(domain)
             except Exception:
                 continue
-
         return list(domains)
 
-    def _assess_with_llm(self, domains: list[str]) -> SourcingLLMOutput:
+    def analyze(self, articles: list[dict[str, str]]) -> SourcingAnalysisResult:
         """
-        Use LLM to assess source quality for each domain.
-
-        Args:
-            domains: List of unique source domains
-
-        Returns:
-            SourcingLLMOutput with assessments
+        Analyze sourcing quality using links and text analysis.
         """
-        domains_str = "\n".join(f"- {d}" for d in domains)
+        # 1. Gather Link Evidence
+        all_links = []
+        combined_text_snippets = []
+        
+        for i, article in enumerate(articles):
+            text = article.get("text", "")
+            if not text:
+                continue
+                
+            # Extract links
+            links = self._extract_links(text)
+            all_links.extend(links)
+            
+            # Prepare text snippet for LLM (First 2000 chars is usually where sourcing happens)
+            snippet = text[:2000].replace("\n", " ")
+            combined_text_snippets.append(f"ARTICLE {i+1}: {snippet}")
 
-        user_prompt = f"""Assess the quality tier for each of these source domains:
+        unique_domains = self._extract_domains(all_links)
+        
+        # 2. Prepare Prompt for LLM
+        # We give the LLM the hard links we found, PLUS the text to find non-linked citations
+        domains_str = ", ".join(unique_domains) if unique_domains else "None detected via regex"
+        text_context = "\n\n".join(combined_text_snippets[:4]) # Limit to first 4 articles to save tokens
 
+        user_prompt = f"""Analyze the sourcing in these articles.
+
+DETECTED HYPERLINKS (already extracted):
 {domains_str}
 
-For each domain, provide:
-1. Quality tier (PRIMARY, WIRE_SERVICE, MAJOR_OUTLET, CREDIBLE, UNKNOWN, or QUESTIONABLE)
-2. Brief reasoning
+ARTICLE TEXT SNIPPETS (Look for textual citations and vague sourcing here):
+{text_context}
 
-Then calculate an overall sourcing quality score (0=excellent sourcing, 10=poor sourcing)."""
+1. Did you find valid named sources in the text that were NOT linked? (e.g. "According to the AP")
+2. Is there frequent use of vague sourcing? (e.g. "Scientists say", "Critics claim")
+3. Assess the quality of the specific sources found."""
 
         try:
-            result: SourcingLLMOutput = self.llm.invoke(
+            # 3. Invoke LLM
+            llm_output: SourcingLLMOutput = self.llm.invoke(
                 [
                     {"role": "system", "content": self.SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ]
             )
-            return result
+
+            # 4. Calculate Final Score Logic
+            # Penalize for vague sourcing if quality score is otherwise good
+            final_score = llm_output.overall_quality_score
+            
+            # If vague sourcing is found, ensure score isn't perfect
+            if llm_output.vague_sourcing_detected and final_score < 4.0:
+                final_score += 1.5 
+            
+            # Cap score at 10 (Poor)
+            final_score = min(10.0, final_score)
+
+            # Calculate stats
+            avg_sources = len(all_links) / len(articles) if articles else 0.0
+            
+            # Format reasoning to include vague sourcing info if present
+            reasoning = llm_output.overall_assessment
+            if llm_output.vague_sourcing_detected and llm_output.vague_sourcing_examples:
+                examples = ", ".join(llm_output.vague_sourcing_examples[:2])
+                reasoning += f" (Note: Detected vague sourcing: '{examples}')"
+
+            return SourcingAnalysisResult(
+                score=final_score,
+                avg_sources_per_article=round(avg_sources, 2),
+                total_sources_found=len(all_links),
+                unique_domains=len(unique_domains),
+                has_hyperlinks=len(all_links) > 0,
+                source_assessments=llm_output.sources_assessed,
+                has_primary_sources=llm_output.has_primary_sources,
+                has_wire_services=llm_output.has_wire_services,
+                confidence=llm_output.confidence,
+                reasoning=reasoning
+            )
 
         except Exception as e:
             logger.error(f"SourcingAnalyzer LLM call failed: {e}")
-            return SourcingLLMOutput(
-                sources_assessed=[],
-                overall_quality_score=5.0,
-                has_primary_sources=False,
-                has_wire_services=False,
-                confidence=0.0,
-                overall_assessment=f"LLM assessment failed: {str(e)}",
-            )
-
-    def analyze(self, articles: list[dict[str, str]]) -> SourcingAnalysisResult:
-        """
-        Analyze sourcing quality across one or more articles.
-
-        Args:
-            articles: List of article dicts with 'text' key containing article text
-
-        Returns:
-            SourcingAnalysisResult with quality assessment
-        """
-        # Extract all links from all articles
-        all_links = []
-        for article in articles:
-            text = article.get("text", "")
-            links = self._extract_links(text)
-            all_links.extend(links)
-
-        # Get unique domains
-        unique_domains = self._extract_domains(all_links)
-
-        # No links found - return default mediocre score
-        if not unique_domains:
+            # Fallback ONLY on error
             return SourcingAnalysisResult(
                 score=5.0,
                 avg_sources_per_article=0.0,
-                total_sources_found=0,
-                unique_domains=0,
-                has_hyperlinks=False,
+                total_sources_found=len(all_links),
+                unique_domains=len(unique_domains),
+                has_hyperlinks=len(all_links) > 0,
                 source_assessments=[],
                 has_primary_sources=False,
                 has_wire_services=False,
-                confidence=0.5,
-                reasoning="No source links found in articles. Cannot assess sourcing quality.",
+                confidence=0.0,
+                reasoning=f"Analysis failed: {str(e)}"
             )
-
-        # Assess with LLM
-        llm_output = self._assess_with_llm(unique_domains)
-
-        # Calculate metrics
-        avg_sources = len(all_links) / len(articles) if articles else 0.0
-
-        return SourcingAnalysisResult(
-            score=llm_output.overall_quality_score,
-            avg_sources_per_article=round(avg_sources, 2),
-            total_sources_found=len(all_links),
-            unique_domains=len(unique_domains),
-            has_hyperlinks=True,
-            source_assessments=llm_output.sources_assessed,
-            has_primary_sources=llm_output.has_primary_sources,
-            has_wire_services=llm_output.has_wire_services,
-            confidence=llm_output.confidence,
-            reasoning=llm_output.overall_assessment,
-        )
-
-
 # =============================================================================
 # EditorialBiasAnalyzer
 # =============================================================================
@@ -1596,9 +1514,9 @@ are based on the US political spectrum.
 
 ## BIAS SCALE
 Use a scale from -10 (far left) to +10 (far right), with 0 being perfectly centrist:
-- Extreme Left (-10 to -8): Advocates radical progressive positions on most issues
-- Left (-8 to -5): Consistently favors progressive/liberal policies
-- Left-Center (-5 to -2): Leans progressive but with some moderate positions
+- Extreme Left (-10 to -8): Proposes revolutionary change, overthrow of capitalism, or violent resistance. Ignores democratic processes.
+- Left (-8 to -5): Strong progressive/socialist democrat stance. Advocates for major systemic change within democratic framework (e.g., Green New Deal, Universal Healthcare).
+- Left-Center (-5 to -2): Standard liberal/democrat positions.
 - Center (-2 to +2): Balanced coverage, minimal editorial slant, presents multiple viewpoints
 - Right-Center (+2 to +5): Leans conservative but with some moderate positions
 - Right (+5 to +8): Consistently favors conservative policies
@@ -1729,17 +1647,21 @@ Note if the outlet appears to:
         return domain.lower()
 
     def _score_to_label(self, score: float) -> str:
-        """Convert numeric score to MBFC-style label."""
-        if score <= -7:
+        """Convert numeric score to MBFC-style label based on user specification."""
+        if score <= -8.0:
+            return "Extreme Left"
+        elif score <= -5.0:
             return "Left"
-        elif score <= -3:
+        elif score <= -2.0:
             return "Left-Center"
-        elif score <= 3:
-            return "Center"
-        elif score <= 7:
+        elif score <= 1.9:
+            return "Least Biased" # or "Center"
+        elif score <= 4.9:
             return "Right-Center"
-        else:
+        elif score <= 7.9:
             return "Right"
+        else:
+            return "Extreme Right"
 
     def _analyze_with_llm(self, articles: list[dict[str, str]]) -> EditorialBiasLLMOutput:
         """
@@ -1760,10 +1682,10 @@ Note if the outlet appears to:
 
         combined_text = "\n---\n".join(articles_text)
 
-        user_prompt = f"""Analyze the following articles for editorial/political bias:
+        user_prompt = f"""Analyze the following articles for editorial/political bias. 
+IMPORTANT: If the articles are not in English, translate their core meaning to English internally before analyzing.
 
 {combined_text}
-
 Assess:
 1. Overall political leaning (score from -10 to +10)
 2. Positions on specific policy domains if detectable

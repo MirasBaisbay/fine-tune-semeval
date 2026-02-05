@@ -11,7 +11,8 @@ from typing import List, Optional, Set, Dict
 from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlparse
 import requests
-from bs4 import BeautifulSoup
+import warnings
+from bs4 import BeautifulSoup, XMLParsedAsHTMLWarning
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
@@ -72,8 +73,13 @@ class MediaScraper:
             # Fix encoding issues
             if resp.encoding == 'ISO-8859-1':
                 resp.encoding = resp.apparent_encoding
+            
+            # Suppress XML warning for RSS feeds/Sitemaps
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+                soup = BeautifulSoup(resp.text, 'html.parser')
                 
-            return BeautifulSoup(resp.text, 'html.parser')
+            return soup
         except Exception as e:
             logger.warning(f"Failed to fetch {url}: {e}")
             return None

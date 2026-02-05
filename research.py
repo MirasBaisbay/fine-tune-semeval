@@ -72,9 +72,10 @@ class MediaResearcher:
     All LLM calls use .with_structured_output() for type-safe responses.
     """
 
-    HISTORY_PROMPT = """You are extracting history information about a media outlet from search results.
+    HISTORY_PROMPT = """You are extracting history and identity information about a media outlet from search results.
 
 Extract the following if available:
+- Official Name: The full, proper name of the organization (e.g., "The New York Times" instead of "nytimes", "The Associated Press" instead of "apnews", "Wall Street Journal" instead of "wsj")
 - Founding year
 - Founder name(s)
 - Original name (if different from current)
@@ -109,6 +110,19 @@ For each analysis found:
 - Categorize sentiment as: positive, negative, neutral, or mixed
 
 Include up to 3-5 most relevant and credible analyses."""
+
+    # Domains to exclude from search results
+    SEARCH_BLACKLIST = {
+        "facebook.com",
+        "twitter.com",
+        "x.com",
+        "instagram.com",
+        "tiktok.com",
+        "pinterest.com",
+        "linkedin.com",
+        "reddit.com",
+        "youtube.com",
+    }
 
     def __init__(
         self,
@@ -149,37 +163,10 @@ Include up to 3-5 most relevant and credible analyses."""
             url: The outlet's URL
 
         Returns:
-            Human-readable name
+            Human-readable name derived from domain
         """
         domain = self._extract_domain(url)
-
-        # Common mappings
-        known_names = {
-            "nytimes.com": "New York Times",
-            "washingtonpost.com": "Washington Post",
-            "wsj.com": "Wall Street Journal",
-            "bbc.com": "BBC",
-            "cnn.com": "CNN",
-            "foxnews.com": "Fox News",
-            "msnbc.com": "MSNBC",
-            "infowars.com": "InfoWars",
-            "breitbart.com": "Breitbart",
-            "dailywire.com": "Daily Wire",
-            "theguardian.com": "The Guardian",
-            "reuters.com": "Reuters",
-            "apnews.com": "Associated Press",
-            "huffpost.com": "HuffPost",
-            "vox.com": "Vox",
-            "axios.com": "Axios",
-            "politico.com": "Politico",
-            "theatlantic.com": "The Atlantic",
-            "npr.org": "NPR",
-        }
-
-        if domain in known_names:
-            return known_names[domain]
-
-        # Generate from domain
+        # Generate name from domain (e.g., "nytimes.com" -> "Nytimes")
         name = domain.split(".")[0]
         return name.replace("-", " ").replace("_", " ").title()
 
@@ -195,14 +182,21 @@ Include up to 3-5 most relevant and credible analyses."""
             Combined search snippets
         """
         try:
-            results = list(self.search.text(query, max_results=max_results))
+            # Request more results to account for blacklist filtering
+            results = list(self.search.text(query, max_results=max_results + 5))
             if results:
                 snippets = []
                 for r in results:
+                    url = r.get("href", "")
+                    # Filter out blacklisted domains
+                    result_domain = self._extract_domain(url)
+                    if result_domain in self.SEARCH_BLACKLIST:
+                        continue
                     title = r.get("title", "")
                     body = r.get("body", "")
-                    url = r.get("href", "")
                     snippets.append(f"{title}: {body} (URL: {url})")
+                    if len(snippets) >= max_results:
+                        break
                 return "\n\n".join(snippets)
             return ""
         except Exception as e:
@@ -213,14 +207,23 @@ Include up to 3-5 most relevant and credible analyses."""
         """
         Research outlet history and founding information.
 
+        First tries to find "about us" pages from the outlet itself,
+        then falls back to Wikipedia if no results found.
+
         Args:
             outlet_name: Human-readable outlet name
 
         Returns:
             HistoryLLMOutput with extracted history
         """
-        query = f'"{outlet_name}" founded history media news organization wikipedia'
+        # First try: about us pages from the outlet itself
+        query = f'"{outlet_name}" about us founded history media news organization'
         snippets = self._search(query)
+
+        # Fallback to Wikipedia if no results
+        if not snippets:
+            query = f'"{outlet_name}" wikipedia founded history media news organization'
+            snippets = self._search(query)
 
         if not snippets:
             return HistoryLLMOutput(
@@ -483,6 +486,11 @@ class MediaProfiler:
         # 4. External research
         logger.info("  - Researching history...")
         history = self.researcher.research_history(outlet_name)
+
+        # Update outlet_name if LLM found the official name
+        if history.official_name:
+            logger.info(f"  - Updating outlet name from '{outlet_name}' to '{history.official_name}'")
+            outlet_name = history.official_name
 
         logger.info("  - Researching ownership...")
         ownership = self.researcher.research_ownership(outlet_name)

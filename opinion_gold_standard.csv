@@ -1,0 +1,164 @@
+url,title,text_snippet,expected_label
+https://www.bbc.com/news/world-us-canada-12345,US Congress passes infrastructure bill after months of debate,"The US Congress has passed a major infrastructure bill worth $1.2 trillion
+        after months of intense negotiations between Democrats and Republicans.
+
+        The bill, which passed the House with a 228-206 vote, includes funding for
+        roads, bridges, public transit, and broadband internet expansion.
+
+        President Biden is expected to sign the legislation into law next week.
+        Senate Majority Leader Chuck Schumer called it ""a historic investment in
+        America's future."" Republican minority leader Mitch McConnell said his
+        party had secured important concessions during negotiations.
+
+        The Congressional Budget Office estimates the bill will add $256 billion
+        to the federal deficit over the next decade.",News
+https://www.reuters.com/article/global-economy-12345,Fed raises interest rates by 0.25% amid inflation concerns,"The Federal Reserve raised its benchmark interest rate by 0.25 percentage
+        points on Wednesday, marking the third increase this year as policymakers
+        seek to combat persistent inflation.
+
+        The decision, announced following a two-day policy meeting, brings the
+        federal funds rate to a range of 4.75% to 5%. The move was widely
+        anticipated by economists and financial markets.
+
+        Fed Chair Jerome Powell said in a press conference that ""inflation remains
+        elevated"" and that the central bank remains ""strongly committed"" to
+        returning it to the 2% target. He noted that recent banking sector stress
+        could tighten credit conditions.
+
+        Markets reacted positively to the announcement, with the S&P 500 rising
+        0.8% in afternoon trading.",News
+https://www.apnews.com/article/climate-summit-12345,World leaders gather for climate summit in Dubai,"World leaders from more than 190 countries have gathered in Dubai for the
+        COP28 climate summit, with discussions focused on accelerating the
+        transition away from fossil fuels.
+
+        UN Secretary-General António Guterres called for ""immediate action"" to
+        address rising global temperatures. ""We are on a highway to climate hell
+        with our foot on the accelerator,"" he said in his opening remarks.
+
+        The summit comes amid record-breaking global temperatures, with 2023 on
+        track to be the hottest year in recorded history. Scientists from the
+        World Meteorological Organization reported that global average temperatures
+        are now 1.4°C above pre-industrial levels.
+
+        Negotiations are expected to focus on a new global stocktake assessing
+        progress toward Paris Agreement goals.",News
+https://www.washingtonpost.com/national/article-12345,Supreme Court hears arguments in landmark voting rights case,"The Supreme Court heard oral arguments Tuesday in a case that could
+        significantly reshape voting rights protections across the United States.
+
+        The case, Moore v. Harper, centers on whether state legislatures have
+        exclusive authority to set rules for federal elections without oversight
+        from state courts.
+
+        Justice Ketanji Brown Jackson questioned the petitioners about the
+        historical basis for their argument, while Justice Samuel Alito pressed
+        the respondents on the limits of state court authority.
+
+        Lawyers for the North Carolina legislature argued that the Elections
+        Clause of the Constitution grants state legislatures broad power over
+        federal elections. Opposing counsel contended that state constitutions
+        must serve as a check on that power.
+
+        A decision is expected by June.",News
+https://www.nytimes.com/opinion/column-12345,Opinion: Why America needs universal healthcare now,"I've been a physician for 30 years, and I've never been more convinced
+        that our healthcare system is fundamentally broken. We spend more per
+        capita than any other developed nation, yet our outcomes are worse.
+        It's time for universal healthcare.
+
+        In my view, the evidence is overwhelming. Every day in my practice, I see
+        patients who delay treatment because they can't afford it. I see families
+        bankrupted by medical bills. I see the administrative waste of our
+        fragmented system.
+
+        The opponents of universal healthcare will tell you it's ""socialism"" or
+        that it will lead to rationing. These arguments don't hold up to scrutiny.
+        Countries like Canada, Germany, and France provide excellent care to all
+        their citizens at lower cost than we do.
+
+        We must act now. The human cost of inaction is simply too high. Congress
+        should pass Medicare for All legislation this year.",Opinion
+https://www.wsj.com/opinion/editorial-12345,The border crisis demands immediate action,"The situation at our southern border has reached a breaking point, and
+        the Biden administration's policies are largely to blame. We believe it's
+        time for a fundamental change in approach.
+
+        Since taking office, this administration has systematically dismantled
+        effective border security measures. The ""Remain in Mexico"" policy, which
+        had proven successful, was ended. Deportations have dropped dramatically.
+
+        The results speak for themselves: record numbers of illegal crossings,
+        overwhelmed border communities, and a humanitarian crisis that benefits
+        no one—least of all the migrants themselves who are being exploited by
+        criminal cartels.
+
+        In our judgment, the path forward is clear. We need to restore the proven
+        policies that worked, increase border security funding, and reform our
+        asylum system to prevent abuse. The safety of American communities and
+        the dignity of migrants both demand it.",Opinion
+https://www.theatlantic.com/ideas/archive/12345,I was wrong about artificial intelligence,"Three years ago, I wrote a piece dismissing fears about artificial
+        intelligence as overblown. I argued that we were decades away from AI
+        systems that could pose any real concern. I now believe I was wrong.
+
+        The rapid advancement of large language models has forced me to reconsider
+        my position. When I first used GPT-4, I was genuinely unsettled. This
+        wasn't the narrow, task-specific AI I had expected. It felt different.
+
+        I think we as a society need to have a serious conversation about where
+        this technology is heading. The potential benefits are enormous, but so
+        are the risks. My worry is that we're moving too fast to think through
+        the implications.
+
+        We should be investing massively in AI safety research. We should be
+        developing regulatory frameworks now, before it's too late. And we should
+        be humble about what we don't know. I certainly have learned to be.",Opinion
+https://www.guardian.com/commentisfree/12345,The housing crisis won't solve itself – we need bold government action,"Young people today face a housing market that is fundamentally rigged
+        against them. I should know – I'm 32, earn a decent salary, and still
+        can't afford to buy a home in the city where I work.
+
+        The free market has had decades to solve this problem. It hasn't. Prices
+        have skyrocketed while wages have stagnated. Developers build luxury flats
+        that sit empty while families crowd into substandard rentals.
+
+        In my opinion, the only solution is massive government intervention. We
+        need rent controls to protect existing tenants. We need public housing
+        construction on a scale not seen since the postwar era. We need strict
+        limits on foreign property speculation.
+
+        Those who cry ""socialism"" at such proposals should consider: is the
+        current system really working? For whom? The status quo is a choice, and
+        we can choose differently.",Opinion
+https://www.theonion.com/article-12345,Nation's Dog Owners Demand To Know Who's A Good Boy,"WASHINGTON—Gathering in unprecedented numbers on the National Mall,
+        millions of dog owners from across the country demanded Wednesday that
+        government officials finally reveal who's a good boy.
+
+        ""We've been asking this question for years, and we deserve answers,"" said
+        protest organizer Karen Mitchell, 43, of Topeka, KS, while repeatedly
+        scratching behind her golden retriever's ears. ""Who's a good boy? Is it
+        Max? Is Max a good boy? We need to know.""
+
+        The massive demonstration, which saw participants waving signs reading
+        ""Tell Us Who's A Good Boy"" and ""Yes You Are, Yes You Are,"" marked the
+        largest single-issue protest in the nation's history.
+
+        At press time, sources confirmed that it was in fact Max who was a good
+        boy, yes he was, yes he was.",Satire
+https://www.prnewswire.com/news-release-12345,TechCorp Announces Revolutionary AI Platform Set to Transform Industries,"SAN FRANCISCO, Jan. 15, 2024 /PRNewswire/ -- TechCorp, the global leader
+        in enterprise software solutions, today announced the launch of TechCorp AI,
+        a groundbreaking artificial intelligence platform that promises to
+        revolutionize how businesses operate.
+
+        ""TechCorp AI represents the culmination of five years of research and
+        development by our world-class team of scientists,"" said CEO John Smith.
+        ""We believe this will be the most important product launch in our
+        company's 25-year history.""
+
+        TechCorp AI leverages proprietary machine learning algorithms to deliver
+        unprecedented accuracy and efficiency gains. Early adopters have reported
+        productivity improvements of up to 300%.
+
+        ""TechCorp has once again demonstrated why they are the industry leader,""
+        said industry analyst Mary Johnson of Research Group Inc.
+
+        TechCorp AI is available immediately for enterprise customers. For more
+        information, visit www.techcorp.com/ai.
+
+        About TechCorp: TechCorp is the world's leading provider of enterprise
+        software solutions, serving over 10,000 customers in 50 countries.",PR

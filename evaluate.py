@@ -57,12 +57,14 @@ BIAS_ORDINAL_MAP = {
 def bias_score_to_ordinal(score: float) -> int:
     """
     Convert bias score (-10 to +10) to ordinal class (0-6).
-
-    Args:
-        score: Bias score from -10 (far left) to +10 (far right)
-
-    Returns:
-        Ordinal class from 0 (Extreme Left) to 6 (Extreme Right)
+    Based on User Specification:
+    -10 to -8.0: Extreme Left
+    -7.9 to -5.0: Left
+    -4.9 to -2.0: Left-Center
+    -1.9 to +1.9: Least Biased
+    +2.0 to +4.9: Right-Center
+    +5.0 to +7.9: Right
+    +8.0 to +10: Extreme Right
     """
     if score <= -8.0:
         return 0  # Extreme Left
@@ -114,15 +116,14 @@ FACTUALITY_ORDINAL_MAP = {
 
 def factuality_score_to_ordinal(score: float) -> int:
     """
-    Convert factuality score (0-10+) to ordinal class (0-5).
-
-    Note: Lower scores = better factuality.
-
-    Args:
-        score: Factuality score from 0 (Very High) to 10+ (Very Low)
-
-    Returns:
-        Ordinal class from 0 (Very High) to 5 (Very Low)
+    Convert factuality score (0-10) to ordinal class (0-5).
+    Based on User Specification:
+    0 = Very High (0)
+    1 = High (1)
+    2-3 = Mostly Factual (2)
+    3-7 = Mixed (3)
+    8-9 = Low (4)
+    10+ = Very Low (5)
     """
     if score <= 0.5:
         return 0  # Very High
@@ -136,7 +137,7 @@ def factuality_score_to_ordinal(score: float) -> int:
         return 4  # Low
     else:
         return 5  # Very Low
-
+    
 
 def factuality_label_to_ordinal(label: str) -> int:
     """

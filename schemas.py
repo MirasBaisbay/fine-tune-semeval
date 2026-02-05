@@ -451,8 +451,20 @@ class SourcingLLMOutput(BaseModel):
 
     sources_assessed: list[SourceAssessment] = Field(
         default_factory=list,
-        description="Assessment of each unique source domain"
+        description="Assessment of each unique source domain OR named entity found in text"
     )
+    
+    # --- NEW FIELDS START ---
+    vague_sourcing_detected: bool = Field(
+        default=False,
+        description="Whether articles rely on vague phrases like 'experts say', 'sources claim' without naming them"
+    )
+    vague_sourcing_examples: list[str] = Field(
+        default_factory=list,
+        description="Examples of vague attribution phrases found"
+    )
+    # --- NEW FIELDS END ---
+    
     overall_quality_score: float = Field(
         ge=0.0,
         le=10.0,
@@ -814,6 +826,10 @@ class PseudoscienceAnalysisResult(BaseModel):
 class HistoryLLMOutput(BaseModel):
     """Structured LLM output for outlet history extraction."""
 
+    official_name: Optional[str] = Field(
+        default=None,
+        description="The proper, official name of the organization (e.g., 'The Associated Press' instead of 'apnews', 'Wall Street Journal' instead of 'wsj')"
+    )
     founding_year: Optional[int] = Field(
         default=None,
         description="Year the outlet was founded"
