@@ -422,9 +422,332 @@ Based on research by:
 
 ---
 
+### refactored_analyzers.py - LLM-Based Analyzers
+
+Modern analyzers using LangChain's structured output for type-safe LLM responses:
+
+**Content Analyzers:**
+- `OpinionAnalyzer` - Article type classification (News/Opinion/Satire/PR)
+- `EditorialBiasAnalyzer` - LLM-based political bias detection
+- `PseudoscienceAnalyzer` - Science misinformation detection
+
+**Metadata Analyzers:**
+- `TrafficLongevityAnalyzer` - Hybrid Tranco + WHOIS + LLM
+- `MediaTypeAnalyzer` - Hybrid lookup + LLM classification
+
+**Factuality Analyzers:**
+- `FactCheckSearcher` - Multi-site fact-checker search + LLM parsing
+- `SourcingAnalyzer` - Link extraction + LLM quality assessment
+
 ### parser.py - MBFC Website Parser
 
 Specialized parser for scraping Media Bias/Fact Check website to collect source URLs.
+
+---
+
+## Refactored Analyzer Flow Diagrams
+
+### TrafficLongevityAnalyzer
+
+Hybrid deterministic + LLM approach for traffic and domain age analysis.
+
+```
+analyze(domain)
+    │
+    ├─► 1. WHOIS Lookup (always runs)
+    │       └─► Extract creation_date → Calculate age_years
+    │
+    ├─► 2. Tranco Lookup (O(1) dict lookup)
+    │       │   Source: https://tranco-list.eu/
+    │       │   - Top 1M domains ranked by popularity
+    │       │   - Auto-downloads if missing
+    │       │
+    │       ├─► Found?
+    │       │       ├─► rank < 10,000    → HIGH traffic
+    │       │       ├─► rank < 100,000   → MEDIUM traffic
+    │       │       ├─► rank < 1,000,000 → LOW traffic
+    │       │       └─► Return with confidence=1.0, source=TRANCO
+    │       │
+    │       └─► Not found? → Continue to step 3
+    │
+    └─► 3. LLM Fallback
+            ├─► Search: "{domain} traffic stats similarweb hypestat semrush"
+            ├─► Combine top 5 result snippets
+            └─► Parse with structured LLM output → TrafficEstimate
+                    ├─► traffic_tier: HIGH/MEDIUM/LOW/MINIMAL/UNKNOWN
+                    ├─► monthly_visits_estimate (if found)
+                    ├─► confidence: 0.0-1.0
+                    └─► reasoning
+
+OUTPUT: TrafficData
+    ├── domain, creation_date, age_years
+    ├── traffic_tier, traffic_confidence
+    ├── traffic_source: TRANCO | LLM | FALLBACK
+    ├── tranco_rank (if available)
+    └── whois_success, whois_error
+```
+
+### MediaTypeAnalyzer
+
+Hybrid lookup table + LLM approach for media type classification.
+
+```
+analyze(url_or_domain)
+    │
+    ├─► 1. Known Types Lookup (O(1) dict)
+    │       │   Source: known_media_types.csv
+    │       │   - Pre-classified major outlets
+    │       │   - Maps domain → MediaType enum
+    │       │
+    │       ├─► Found?
+    │       │       └─► Return with confidence=1.0, source=LOOKUP
+    │       │
+    │       └─► Not found? → Continue to step 2
+    │
+    └─► 2. LLM Classification
+            ├─► Search: '"{domain}" type of media outlet newspaper television website magazine'
+            ├─► Fallback: "{site_name} wikipedia media company"
+            └─► Parse with structured LLM output → MediaTypeLLMOutput
+                    ├─► media_type: TV/NEWSPAPER/WEBSITE/MAGAZINE/RADIO/NEWS_AGENCY/BLOG/PODCAST/STREAMING/UNKNOWN
+                    ├─► confidence: 0.0-1.0
+                    └─► reasoning
+
+OUTPUT: MediaTypeClassification
+    ├── media_type: MediaType enum
+    ├── confidence: 0.0-1.0
+    ├── source: LOOKUP | LLM | FALLBACK
+    └── reasoning
+```
+
+### FactCheckSearcher (40% of Factuality Score)
+
+Multi-site search + LLM parsing for fact-check findings.
+
+```
+analyze(url_or_domain, outlet_name?)
+    │
+    ├─► 1. Extract Domain & Outlet Name
+    │       ├─► "nytimes.com" → "New York Times"
+    │       └─► Uses known_names dict or generates from domain
+    │
+    ├─► 2. Search 5 Fact-Checker Sites
+    │       │   Sites:
+    │       │   ├── mediabiasfactcheck.com
+    │       │   ├── politifact.com
+    │       │   ├── snopes.com
+    │       │   ├── factcheck.org
+    │       │   └── fullfact.org
+    │       │
+    │       │   Query format:
+    │       │   site:{site} "{domain}" OR "{outlet_name}"
+    │       │
+    │       └─► Collect up to 3 results per site → Combine snippets
+    │
+    ├─► 3. LLM Parsing
+    │       └─► Parse snippets → FactCheckLLMOutput
+    │               ├─► findings: List[FactCheckFinding]
+    │               │       ├── source_site (PolitiFact, Snopes, etc.)
+    │               │       ├── claim_summary
+    │               │       ├── verdict: TRUE/MOSTLY_TRUE/HALF_TRUE/MIXED/
+    │               │       │            MOSTLY_FALSE/FALSE/PANTS_ON_FIRE/
+    │               │       │            MISLEADING/UNPROVEN/NOT_RATED
+    │               │       └── url (if available)
+    │               ├─► failed_count (FALSE, MOSTLY_FALSE, PANTS_ON_FIRE, MISLEADING)
+    │               ├─► total_count
+    │               └─► confidence, reasoning
+    │
+    └─► 4. Score Calculation
+            ├─► 0 failed checks    → 0.0 (excellent)
+            ├─► 1-2 failed checks  → 2.0-4.0
+            ├─► 3-5 failed checks  → 5.0-7.0
+            ├─► 6+ failed checks   → 8.0-10.0 (very poor)
+            └─► No data found      → 5.0 (neutral)
+
+OUTPUT: FactCheckAnalysisResult
+    ├── domain, outlet_name
+    ├── failed_checks_count, total_checks_count
+    ├── score: 0.0-10.0
+    ├── source: SEARCH | FALLBACK
+    ├── findings: List[FactCheckFinding]
+    └── confidence, reasoning
+```
+
+### SourcingAnalyzer (25% of Factuality Score)
+
+Link extraction + LLM quality assessment for source evaluation.
+
+```
+analyze(articles: List[{text}])
+    │
+    ├─► 1. Extract Links from All Articles
+    │       └─► Regex: https?://[^\s<>"')\]]+
+    │
+    ├─► 2. Extract Unique Domains
+    │       │   Filter out social media:
+    │       │   ├── twitter.com, x.com
+    │       │   ├── facebook.com, instagram.com
+    │       │   ├── youtube.com, tiktok.com
+    │       │   ├── linkedin.com, reddit.com
+    │       │   └── t.co (Twitter short links)
+    │       │
+    │       └─► No domains found? → Return score=5.0 (neutral)
+    │
+    └─► 3. LLM Quality Assessment
+            └─► Assess each domain → SourcingLLMOutput
+                    ├─► sources_assessed: List[SourceAssessment]
+                    │       ├── domain
+                    │       ├── quality: PRIMARY/WIRE_SERVICE/MAJOR_OUTLET/
+                    │       │            CREDIBLE/UNKNOWN/QUESTIONABLE
+                    │       └── reasoning
+                    ├─► overall_quality_score: 0.0-10.0
+                    ├─► has_primary_sources: bool
+                    ├─► has_wire_services: bool
+                    └─► overall_assessment
+
+Quality Tiers:
+    PRIMARY       → .gov, .edu, official sources, research papers
+    WIRE_SERVICE  → Reuters, AP, AFP, UPI
+    MAJOR_OUTLET  → NYT, BBC, WSJ, WaPo, Guardian, CNN
+    CREDIBLE      → Regional papers, trade publications
+    UNKNOWN       → Unfamiliar domains
+    QUESTIONABLE  → Known unreliable sources
+
+OUTPUT: SourcingAnalysisResult
+    ├── score: 0.0-10.0 (0=excellent, 10=poor)
+    ├── avg_sources_per_article
+    ├── total_sources_found, unique_domains
+    ├── has_hyperlinks, has_primary_sources, has_wire_services
+    ├── source_assessments: List[SourceAssessment]
+    └── confidence, reasoning
+```
+
+### EditorialBiasAnalyzer (Refactored - LLM-Based)
+
+Replaces keyword/lexicon matching with comprehensive LLM content analysis.
+
+```
+analyze(articles: List[{title, text}], url_or_domain?, outlet_name?)
+    │
+    ├─► 1. Format Articles for Analysis
+    │       └─► Combine title + first 2000 chars of each article
+    │
+    └─► 2. LLM Analysis with MBFC Methodology
+            │
+            │   System Prompt encodes:
+            │   ├── Bias Scale: -10 (far left) to +10 (far right)
+            │   ├── Policy Domain Indicators:
+            │   │       ├── Economic Policy (taxes, regulation, unions)
+            │   │       ├── Social Issues (abortion, LGBTQ+, guns)
+            │   │       ├── Environmental Policy (climate, regulations)
+            │   │       ├── Healthcare (universal vs private)
+            │   │       ├── Immigration (pathways vs enforcement)
+            │   │       └── Gun Rights (control vs 2A)
+            │   ├── Loaded Language Detection:
+            │   │       ├── LEFT: "regime", "far-right", "fascist", "climate denier"
+            │   │       └── RIGHT: "radical left", "woke", "cancel culture", "fake news"
+            │   └── Story Selection Bias patterns
+            │
+            └─► Parse → EditorialBiasLLMOutput
+                    ├─► overall_bias: EXTREME_LEFT/LEFT/LEFT_CENTER/CENTER/
+                    │                 RIGHT_CENTER/RIGHT/EXTREME_RIGHT
+                    ├─► bias_score: -10.0 to +10.0
+                    ├─► policy_positions: List[PolicyPosition]
+                    │       ├── domain: ECONOMIC/SOCIAL/ENVIRONMENTAL/HEALTHCARE/
+                    │       │           IMMIGRATION/FOREIGN_POLICY/GUN_RIGHTS/EDUCATION
+                    │       ├── leaning: BiasDirection
+                    │       ├── indicators: List[str]
+                    │       └── confidence
+                    ├─► uses_loaded_language: bool
+                    ├─► loaded_language_examples: List[str]
+                    ├─► story_selection_bias: str (optional)
+                    └─► confidence, reasoning
+
+Score to Label Mapping:
+    score <= -7  → "Left"
+    -7 < score <= -3 → "Left-Center"
+    -3 < score <= 3  → "Center"
+    3 < score <= 7   → "Right-Center"
+    score > 7    → "Right"
+
+OUTPUT: EditorialBiasResult
+    ├── domain, outlet_name
+    ├── overall_bias: BiasDirection
+    ├── bias_score: -10.0 to +10.0
+    ├── mbfc_label: "Left"/"Left-Center"/"Center"/"Right-Center"/"Right"
+    ├── policy_positions, loaded_language_examples
+    ├── articles_analyzed
+    └── confidence, reasoning
+```
+
+### PseudoscienceAnalyzer (New)
+
+LLM-based detection of pseudoscience and conspiracy content.
+
+```
+analyze(articles: List[{title, text}], url_or_domain?, outlet_name?)
+    │
+    ├─► 1. Format Articles for Analysis
+    │       └─► Combine title + first 2000 chars of each article
+    │
+    └─► 2. LLM Analysis with Scientific Consensus
+            │
+            │   System Prompt includes:
+            │   ├── Pseudoscience Definition
+            │   │       "Claims presented as scientific but incompatible
+            │   │        with scientific method - unproven, untestable,
+            │   │        or contradicting scientific consensus"
+            │   │
+            │   ├── Categories to Detect:
+            │   │   HEALTH:
+            │   │   ├── Anti-Vaccination (vaccines cause autism, etc.)
+            │   │   ├── Alternative Medicine (homeopathy, crystal healing)
+            │   │   ├── Alternative Cancer Treatments
+            │   │   ├── COVID-19 Misinformation
+            │   │   └── Detoxification Claims
+            │   │
+            │   │   CLIMATE/ENVIRONMENTAL:
+            │   │   ├── Climate Change Denialism
+            │   │   ├── 5G Health Conspiracy
+            │   │   ├── Chemtrails
+            │   │   └── GMO Danger Claims
+            │   │
+            │   │   PARANORMAL:
+            │   │   ├── Astrology, Psychic Claims
+            │   │   └── Faith Healing
+            │   │
+            │   │   CONSPIRACY:
+            │   │   ├── Flat Earth, Moon Landing Hoax
+            │   │   └── QAnon
+            │   │
+            │   └── Severity Assessment:
+            │           PROMOTES → Actively promotes as fact
+            │           PRESENTS_UNCRITICALLY → Reports without context
+            │           MIXED → Inconsistent treatment
+            │           NONE_DETECTED → Respects scientific consensus
+            │
+            └─► Parse → PseudoscienceLLMOutput
+                    ├─► indicators: List[PseudoscienceIndicator]
+                    │       ├── category: PseudoscienceCategory
+                    │       ├── severity: PseudoscienceSeverity
+                    │       ├── evidence: str
+                    │       └── scientific_consensus: str
+                    ├─► promotes_pseudoscience: bool
+                    ├─► overall_severity: PseudoscienceSeverity
+                    ├─► science_reporting_quality: 0.0-10.0
+                    ├─► respects_scientific_consensus: bool
+                    └─► confidence, reasoning
+
+OUTPUT: PseudoscienceAnalysisResult
+    ├── domain, outlet_name
+    ├── score: 0.0-10.0 (0=pro-science, 10=promotes pseudoscience)
+    ├── promotes_pseudoscience: bool
+    ├── overall_severity: PROMOTES/PRESENTS_UNCRITICALLY/MIXED/NONE_DETECTED
+    ├── categories_found: List[PseudoscienceCategory]
+    ├── indicators: List[PseudoscienceIndicator]
+    ├── respects_scientific_consensus: bool
+    ├── articles_analyzed
+    └── confidence, reasoning
+```
 
 ---
 
@@ -784,56 +1107,84 @@ MBFC Credibility Rating: HIGH CREDIBILITY
 
 ```
 media-profiling/
-|
-+-- config.py                    # Configuration constants and scoring scales
-|   +-- MBFC scoring constants
-|   +-- Propaganda techniques (14 classes)
-|   +-- Economic/Social/Editorial scales
-|   +-- Model and training configurations
-|
-+-- analyzers.py                 # MBFC-compliant analysis components
-|   +-- Bias Analyzers (Economic, Social, NewsReporting, Editorial)
-|   +-- Factuality Analyzers (FactCheck, Sourcing, Transparency, Propaganda)
-|   +-- IdeologyDecisionTreeAnalyzer (recursive question-based)
-|   +-- ScoringCalculator
-|
-+-- editorial_bias_detection.py  # Editorial bias detection
-|   +-- ClickbaitAnalyzer
-|   +-- LoadedLanguageAnalyzer
-|   +-- StructuredEditorialBiasAnalyzer
-|
-+-- scraper.py                   # Web scraping for articles and metadata
-|   +-- MediaScraper
-|   +-- Article dataclass
-|   +-- SiteMetadata dataclass
-|
-+-- profiler.py                  # LangGraph orchestration workflow
-|   +-- ProfilerState
-|   +-- Pipeline nodes
-|   +-- CLI interface
-|
-+-- localDetector.py             # DeBERTa inference pipeline
-|   +-- LocalPropagandaDetector
-|
-+-- trainPipeline.py             # DeBERTa fine-tuning pipeline
-|
-+-- parser.py                    # MBFC website parser
-|
-+-- ideology_question_bank.json  # Comprehensive ideology question bank
-|   +-- Economic System dimension
-|   +-- Social Values dimension
-|   +-- Academic references
-|
-+-- 2025.csv                     # Freedom Index dataset (181 countries)
-|
-+-- datasets/                    # SemEval 2020 Task 11 data
-|   +-- train/
-|   +-- dev/
-|   +-- test/
-|
-+-- propaganda_models/           # Trained model outputs
-    +-- si_model/
-    +-- tc_model/
+│
+├── config.py                    # Configuration constants and scoring scales
+│   ├── MBFC scoring constants
+│   ├── Propaganda techniques (14 classes)
+│   ├── Economic/Social/Editorial scales
+│   └── Model and training configurations
+│
+├── schemas.py                   # Pydantic v2 schemas for structured LLM outputs
+│   ├── Article Classification (ArticleType, ArticleClassification)
+│   ├── Media Type (MediaType, MediaTypeClassification)
+│   ├── Traffic/Longevity (TrafficTier, TrafficData)
+│   ├── Fact Check (FactCheckVerdict, FactCheckFinding, FactCheckAnalysisResult)
+│   ├── Sourcing (SourceQuality, SourceAssessment, SourcingAnalysisResult)
+│   ├── Editorial Bias (BiasDirection, PolicyPosition, EditorialBiasResult)
+│   └── Pseudoscience (PseudoscienceCategory, PseudoscienceIndicator, PseudoscienceAnalysisResult)
+│
+├── refactored_analyzers.py      # LLM-based analyzers with structured output
+│   ├── OpinionAnalyzer (article type classification)
+│   ├── TrafficLongevityAnalyzer (hybrid Tranco + WHOIS + LLM)
+│   ├── MediaTypeAnalyzer (hybrid lookup + LLM)
+│   ├── FactCheckSearcher (multi-site search + LLM parsing)
+│   ├── SourcingAnalyzer (link extraction + LLM quality assessment)
+│   ├── EditorialBiasAnalyzer (LLM-based political bias)
+│   └── PseudoscienceAnalyzer (LLM-based pseudoscience detection)
+│
+├── analyzers.py                 # MBFC-compliant analysis components
+│   ├── Bias Analyzers (Economic, Social, NewsReporting, Editorial)
+│   ├── Factuality Analyzers (FactCheck, Sourcing, Transparency, Propaganda)
+│   ├── IdeologyDecisionTreeAnalyzer (recursive question-based)
+│   └── ScoringCalculator
+│
+├── editorial_bias_detection.py  # Legacy editorial bias detection (rule-based)
+│   ├── ClickbaitAnalyzer
+│   ├── LoadedLanguageAnalyzer
+│   └── StructuredEditorialBiasAnalyzer
+│
+├── scraper.py                   # Web scraping for articles and metadata
+│   ├── MediaScraper
+│   ├── Article dataclass
+│   └── SiteMetadata dataclass
+│
+├── profiler.py                  # LangGraph orchestration workflow
+│   ├── ProfilerState
+│   ├── Pipeline nodes
+│   └── CLI interface
+│
+├── localDetector.py             # DeBERTa inference pipeline
+│   └── LocalPropagandaDetector
+│
+├── trainPipeline.py             # DeBERTa fine-tuning pipeline
+│
+├── parser.py                    # MBFC website parser
+│
+├── ideology_question_bank.json  # Comprehensive ideology question bank
+│   ├── Economic System dimension
+│   ├── Social Values dimension
+│   └── Academic references
+│
+├── known_media_types.csv        # Pre-classified media outlet types
+│
+├── tranco_top1m.csv             # Tranco top 1M domains (auto-downloaded)
+│
+├── 2025.csv                     # Freedom Index dataset (181 countries)
+│
+├── verify_*.py                  # Verification scripts for analyzers
+│   ├── verify_factcheck.py
+│   ├── verify_sourcing.py
+│   ├── verify_editorial_bias.py
+│   └── verify_pseudoscience.py
+│
+├── datasets/                    # SemEval 2020 Task 11 data
+│   ├── train/
+│   ├── dev/
+│   └── test/
+│
+└── propaganda_models/           # Trained model outputs
+    ├── si_model/
+    └── tc_model/
 ```
 
 ---
