@@ -744,11 +744,28 @@ python train_pipeline.py
 
 ## Usage
 
+### Web Interface (Streamlit)
+
+```bash
+# Run locally
+streamlit run app.py
+
+# Opens at http://localhost:8501
+```
+
+**Deploy to HuggingFace Spaces:**
+1. Create a new Space with SDK: Streamlit
+2. Add `OPENAI_API_KEY` as a Space secret
+3. Push the repo — the `requirements.txt` handles dependencies
+
 ### Command Line
 
 ```bash
-# Run the demo profiler
-python research.py
+# Run the CLI profiler
+python main_pipeline.py https://www.bbc.com
+
+# Force re-analysis (ignore cache)
+python main_pipeline.py https://www.bbc.com --refresh
 ```
 
 ### Programmatic
@@ -881,13 +898,17 @@ media-profiling/
 │   ├── MediaProfiler (comprehensive analysis orchestrator)
 │   └── Convenience functions (research_outlet, profile_outlet)
 │
-├── main_pipeline.py             # Entry point: scrape → profile → generate → save
+├── app.py                       # Streamlit web interface (HuggingFace Spaces ready)
+│
+├── main_pipeline.py             # CLI entry point: scrape → profile → generate → save
 │
 ├── report_generator.py          # LLM-based MBFC prose report generation
 │   └── ReportGenerator (GPT-4o synthesis with structured prompting)
 │
 ├── storage.py                   # Persistence layer (30-day cache)
 │   └── StorageManager (JSON + Markdown report caching)
+│
+├── requirements.txt             # Python dependencies for deployment
 │
 ├── scraper.py                   # Web scraping for articles and metadata
 │   ├── MediaScraper
