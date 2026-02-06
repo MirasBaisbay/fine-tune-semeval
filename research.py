@@ -134,6 +134,9 @@ Include up to 3-5 most relevant and credible analyses."""
         "/about-us/",
         "/corporate/about",
         "/company/about",
+        "/aboutthebbc",
+        "/corporate",
+        "/who-we-are",
     ]
 
     # HTTP headers to mimic a browser
@@ -170,6 +173,8 @@ Include up to 3-5 most relevant and credible analyses."""
         )
         self.name_llm = get_llm(model, temperature)
         self.search = DDGS()
+        # Cache for about page text (domain -> text) to avoid redundant scraping
+        self._about_page_cache: dict[str, str] = {}
 
     def _extract_domain(self, url: str) -> str:
         """Extract the root domain from a URL."""
@@ -202,9 +207,10 @@ Include up to 3-5 most relevant and credible analyses."""
         """
         Directly scrape the outlet's about page.
 
-        Tries common about page paths on the site itself.
-        This is preferred over web search because the outlet's own
-        about page is the most authoritative source for history/ownership.
+        Strategy:
+        1. Check cache (avoid redundant scraping)
+        2. Try common about page paths (/about, /about-us, etc.)
+        3. If none work, fetch homepage and discover about links from <a> tags
 
         Args:
             domain: The outlet's domain (e.g., "bbc.com")
@@ -212,26 +218,67 @@ Include up to 3-5 most relevant and credible analyses."""
         Returns:
             About page text content, or empty string if not found
         """
+        # Check cache first
+        if domain in self._about_page_cache:
+            return self._about_page_cache[domain]
+
         base_url = f"https://www.{domain}" if not domain.startswith("www.") else f"https://{domain}"
 
+        # Strategy 1: Try common hardcoded paths
         for path in self.ABOUT_PAGE_PATHS:
-            url = urljoin(base_url, path)
-            try:
-                resp = requests.get(url, headers=self._HEADERS, timeout=10, allow_redirects=True)
-                if resp.status_code == 200 and "text/html" in resp.headers.get("content-type", ""):
-                    soup = BeautifulSoup(resp.text, "html.parser")
-                    # Remove scripts/styles
-                    for tag in soup(["script", "style", "nav", "header", "footer"]):
-                        tag.decompose()
-                    text = soup.get_text(separator=" ", strip=True)
-                    # Only accept if it has meaningful content (not a redirect/error page)
-                    if len(text) > 200:
-                        logger.info(f"  - Found about page at {url}")
-                        return text[:5000]
-            except Exception as e:
-                logger.debug(f"  - About page fetch failed for {url}: {e}")
-                continue
+            text = self._fetch_page_text(urljoin(base_url, path))
+            if text:
+                self._about_page_cache[domain] = text
+                return text
 
+        # Strategy 2: Discover about links from homepage
+        try:
+            resp = requests.get(base_url, headers=self._HEADERS, timeout=10, allow_redirects=True)
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                about_links = set()
+                for a in soup.find_all("a", href=True):
+                    href = a["href"].lower()
+                    # Look for links containing "about" in the path
+                    if "about" in href and not href.startswith("mailto:"):
+                        full_url = urljoin(base_url, a["href"])
+                        # Only follow links on the same domain
+                        if domain in full_url:
+                            about_links.add(full_url)
+
+                for about_url in list(about_links)[:5]:
+                    text = self._fetch_page_text(about_url)
+                    if text:
+                        self._about_page_cache[domain] = text
+                        return text
+        except Exception as e:
+            logger.debug(f"  - Homepage about link discovery failed: {e}")
+
+        self._about_page_cache[domain] = ""
+        return ""
+
+    def _fetch_page_text(self, url: str) -> str:
+        """
+        Fetch a URL and return its text content.
+
+        Args:
+            url: URL to fetch
+
+        Returns:
+            Cleaned text content, or empty string if failed
+        """
+        try:
+            resp = requests.get(url, headers=self._HEADERS, timeout=10, allow_redirects=True)
+            if resp.status_code == 200 and "text/html" in resp.headers.get("content-type", ""):
+                soup = BeautifulSoup(resp.text, "html.parser")
+                for tag in soup(["script", "style", "nav", "header", "footer"]):
+                    tag.decompose()
+                text = soup.get_text(separator=" ", strip=True)
+                if len(text) > 200:
+                    logger.info(f"  - Found about page at {url}")
+                    return text[:5000]
+        except Exception as e:
+            logger.debug(f"  - Page fetch failed for {url}: {e}")
         return ""
 
     def resolve_outlet_name(self, url: str, domain: str = "") -> str:
@@ -303,23 +350,33 @@ Include up to 3-5 most relevant and credible analyses."""
         try:
             # Request more results to account for blacklist filtering
             results = list(self.search.text(query, max_results=max_results + 5))
+            logger.debug(f"  - Search for '{query[:60]}...' returned {len(results)} results")
             if results:
                 snippets = []
                 for r in results:
-                    url = r.get("href", "")
+                    # Handle both old (href) and new (link) DDGS API keys
+                    url = r.get("href", "") or r.get("link", "")
                     # Filter out blacklisted domains
-                    result_domain = self._extract_domain(url)
-                    if result_domain in self.SEARCH_BLACKLIST:
-                        continue
+                    if url:
+                        result_domain = self._extract_domain(url)
+                        if result_domain in self.SEARCH_BLACKLIST:
+                            continue
                     title = r.get("title", "")
-                    body = r.get("body", "")
-                    snippets.append(f"{title}: {body} (URL: {url})")
+                    body = r.get("body", "") or r.get("snippet", "")
+                    if title or body:
+                        snippets.append(f"{title}: {body} (URL: {url})")
                     if len(snippets) >= max_results:
                         break
+                if snippets:
+                    logger.debug(f"  - Kept {len(snippets)} results after filtering")
+                else:
+                    logger.debug(f"  - All {len(results)} results filtered out or empty")
                 return "\n\n".join(snippets)
+            else:
+                logger.debug(f"  - Search returned no results for: {query[:80]}")
             return ""
         except Exception as e:
-            logger.warning(f"Search failed: {e}")
+            logger.warning(f"Search failed for '{query[:60]}...': {e}")
             return ""
 
     def research_history(self, outlet_name: str, domain: str = "") -> HistoryLLMOutput:
@@ -374,12 +431,15 @@ Include up to 3-5 most relevant and credible analyses."""
             snippets = self._search(query)
 
         if not snippets:
-            return HistoryLLMOutput(
-                summary="No history information found.",
-                confidence=0.0
-            )
+            # Tier 5: LLM general knowledge fallback
+            logger.info(f"  - No search results found, using LLM knowledge for {outlet_name}")
+            snippets = ""
+            user_prompt = f"""Extract history information for "{outlet_name}" (domain: {domain}).
 
-        user_prompt = f"""Extract history information for "{outlet_name}" from these search results:
+No search results were available. Use your training knowledge to provide what you know about this media outlet's history.
+Be conservative - only state facts you are confident about. If you are not sure about this outlet, set confidence to 0.0."""
+        else:
+            user_prompt = f"""Extract history information for "{outlet_name}" from these search results:
 
 SEARCH RESULTS:
 {snippets[:3000]}"""
@@ -419,12 +479,14 @@ SEARCH RESULTS:
             snippets = self._search(query)
 
         if not snippets:
-            return OwnershipLLMOutput(
-                notes="No ownership information found.",
-                confidence=0.0
-            )
+            # Fallback: LLM general knowledge
+            logger.info(f"  - No search results found, using LLM knowledge for {outlet_name}")
+            user_prompt = f"""Extract ownership and funding information for "{outlet_name}" (domain: {domain}).
 
-        user_prompt = f"""Extract ownership and funding information for "{outlet_name}" from these search results:
+No search results were available. Use your training knowledge to provide what you know about this media outlet's ownership and funding.
+Be conservative - only state facts you are confident about. If you are not sure about this outlet, set confidence to 0.0."""
+        else:
+            user_prompt = f"""Extract ownership and funding information for "{outlet_name}" from these search results:
 
 SEARCH RESULTS:
 {snippets[:3000]}"""
@@ -464,12 +526,14 @@ SEARCH RESULTS:
             snippets = self._search(query, max_results=8)
 
         if not snippets:
-            return ExternalAnalysisLLMOutput(
-                analyses=[],
-                confidence=0.0
-            )
+            # Fallback: LLM general knowledge
+            logger.info(f"  - No search results found, using LLM knowledge for {outlet_name}")
+            user_prompt = f"""Extract external analyses and criticism for "{outlet_name}" (domain: {domain}).
 
-        user_prompt = f"""Extract external analyses and criticism for "{outlet_name}" from these search results:
+No search results were available. Use your training knowledge to provide what you know about external analyses of this media outlet.
+Be conservative - only state facts you are confident about. If you are not sure about this outlet, set confidence to 0.0."""
+        else:
+            user_prompt = f"""Extract external analyses and criticism for "{outlet_name}" from these search results:
 
 SEARCH RESULTS:
 {snippets[:4000]}"""
