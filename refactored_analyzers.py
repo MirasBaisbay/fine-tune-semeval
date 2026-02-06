@@ -19,7 +19,7 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import whois
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from langchain_openai import ChatOpenAI
 
 from schemas import (

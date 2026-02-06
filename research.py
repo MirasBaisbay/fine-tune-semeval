@@ -19,7 +19,7 @@ from urllib.parse import urlparse, urljoin
 
 import requests
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from langchain_openai import ChatOpenAI
 
 from schemas import (

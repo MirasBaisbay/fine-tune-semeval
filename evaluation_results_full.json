@@ -1,0 +1,408 @@
+[
+  {
+    "name": "OpsLens",
+    "url": "http://www.opslens.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Right",
+      "factuality": "Mixed",
+      "credibility": "MEDIUM CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Pseudoscience",
+      "bias_score": 9.0,
+      "factuality": "High",
+      "factuality_score": 3.5,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Opposing Views",
+    "url": "https://www.opposingviews.com/",
+    "status": "FAILED_SCRAPE",
+    "ground_truth": {
+      "mbfc_url": "https://mediabiasfactcheck.com/opposing-views/",
+      "name": "Opposing Views",
+      "source_url": "https://www.opposingviews.com/",
+      "bias_rating": "RIGHT-CENTER",
+      "bias_score": 3.9,
+      "factual_reporting": "MIXED",
+      "factual_score": 5.4,
+      "credibility_rating": "MEDIUM CREDIBILITY",
+      "country": "USA",
+      "country_freedom_rating": "MOSTLY FREE",
+      "media_type": "Website",
+      "traffic_popularity": "Minimal Traffic",
+      "bias_category_description": "These media sources are slight to moderately conservative in bias. They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes) to favor conservative causes. These sources are generally trustworthy for information but may require further investigation.See all Right-Center sources.",
+      "overall_summary": "Overall, we rate Opposing Views Right-Center biased based on story selection that moderately favors the right. We also rate them Mixed for factual reporting due to poor sources such as the Daily Mail and sensationalized headlines. Detailed Report Bias Rating: RIGHT-CENTER (3.9) Factual Reporting: MIXED (5.",
+      "history": "Founded in 2001, Opposing Views (also known as OV) is an American digital news website headquartered in Los Angeles. According to theirabout page, \u201cOpposing Views provides balanced coverage in an increasingly partisan media climate. We give an unfiltered look at politics, societal issues, international affairs, and culture to help you make informed decisions on what matters most.\u201d Read our profile on the United States government and media.",
+      "ownership": "Tikuno Media LLC owns Opposing Views. Advertising generates revenue.",
+      "analysis": "These media sources are slight to moderately conservative in bias. They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes) to favor conservative causes. These sources are generally trustworthy for information but may require further investigation.See all Right-Center sources. In review, Opposing Views presents original and aggregated news articles from across the political spectrum, with the primary theme being sensationalized stories designed to garner clicks. Here are some sample headlines and stories: Currently, most stories are published in their Society section, focusing on strange news and crime stories. Editorially, Opposing Views often reports negatively on President Biden with loaded emotional headlines such as this:President Biden\u2019s Outfit Turns Heads, Some Critics Call It \u2018Unpresidential.\u2019\u00a0The website also reports negatively on the left with stories such as this:Socialist Group That Pushes For $20 Minimum Wage Offers $13 In Job Ad. This story is sourced to the factually MixedNewsmax. Theysupport the consensuswithhuman-influenced climate change,vaccinations, andGMOswhen it comes to science.",
+      "failed_fact_checks": [
+        "None in the Last 5 years"
+      ],
+      "last_updated": "February 5, 2026"
+    }
+  },
+  {
+    "name": "OpenVaers",
+    "url": "https://openvaers.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Right",
+      "factuality": "Mixed",
+      "credibility": "MEDIUM CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Pseudoscience",
+      "bias_score": 0.0,
+      "factuality": "High",
+      "factuality_score": 3.5,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Open to Debate",
+    "url": "https://opentodebate.org/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "High",
+      "credibility": "HIGH CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "Very High",
+      "factuality_score": 2.0,
+      "credibility": "Very High Credibility"
+    },
+    "matches": {
+      "bias": true,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Open Doors",
+    "url": "https://www.opendoorsus.org/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Right-Center",
+      "factuality": "Mixed",
+      "credibility": "MEDIUM CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Extreme Left",
+      "bias_score": -9.0,
+      "factuality": "High",
+      "factuality_score": 3.5,
+      "credibility": "High Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Open",
+    "url": "https://www.open.online/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "High",
+      "credibility": "HIGH CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Pseudoscience",
+      "bias_score": 0.0,
+      "factuality": "High",
+      "factuality_score": 2.5,
+      "credibility": "High Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": true
+    }
+  },
+  {
+    "name": "OnTheWight",
+    "url": "https://onthewight.com/",
+    "status": "FAILED_SCRAPE",
+    "ground_truth": {
+      "mbfc_url": "https://mediabiasfactcheck.com/onthewight-bias-and-credibility/",
+      "name": "OnTheWight",
+      "source_url": "https://onthewight.com/",
+      "bias_rating": "LEFT-CENTER",
+      "bias_score": -2.9,
+      "factual_reporting": "HIGH",
+      "factual_score": 1.0,
+      "credibility_rating": "HIGH CREDIBILITY",
+      "country": "United Kingdom",
+      "country_freedom_rating": "MOSTLY FREE",
+      "media_type": "Website",
+      "traffic_popularity": "Minimal Traffic",
+      "bias_category_description": "These media sources have a slight to moderate liberal bias. \u00a0They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appealing to emotion or stereotypes) to favor liberal causes. \u00a0These sources are generally trustworthy for information but may require further investigation.See all Left-Center sources.",
+      "overall_summary": "Overall, we rate OnTheWight as Left-Center biased due to their occasional use of biased wording and framing in political coverage. We rate them High for factual reporting due to their comprehensive and well-sourced articles on community topics and a clean fact-check record. Detailed Report Bias Rating: LEFT-CENTER (-2.9) Factual Reporting: HIGH (1.",
+      "history": "OnTheWight,launched initially as VentnorBlog in September 2005, was later rebranded to reflect broader coverage beyond Ventnor. It has become a prominent independent news source for the Isle of Wight, known for its comprehensive reporting on local issues, community events, and important developments. Read our profile on UK government influence on media.",
+      "ownership": "OnTheWight is published byOn The Wight Ltd., led by Sally and Simon Perry. The site generates revenue throughadvertisingand reader donations.",
+      "analysis": "These media sources have a slight to moderate liberal bias. \u00a0They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appealing to emotion or stereotypes) to favor liberal causes. \u00a0These sources are generally trustworthy for information but may require further investigation.See all Left-Center sources. OnTheWight covers a variety of topics related to the Isle of Wight community. Their reporting includes local news, events, politics, and community issues. For instance, they emphasize community-focused stories, like thecollaboration between Tesco and Isle of Wight residentsfor a food allergy awareness campaign. Further, they provide detailed reports on local infrastructure projects, such as the\u201cSouthern Water details \u00a321.5 million investment in Isle of Wight infrastructure over five years.\u201d Additionally, they publish reports such as\u201cBonchurch Landslide: Leeson Road \u2013 Comprehensive Report from Public Meeting,\u201dwhich covers a public meeting discussing a landslide in Bonchurch, Isle of Wight, affecting Leeson Road. The report includes detailed accounts from officials and residents about the causes, impacts, and potential solutions for the landslide. Key points include concerns about road safety, infrastructure damage, and proposed measures to prevent future incidents. The article aims to summarize the meeting thoroughly, reflecting community involvement and local government responses. It is informative and focused on local issues, presenting facts and statements from the meeting without noticeable bias. In contrast, their political coverage can show bias in wording and framing. For example, the article\u201cLetter: HS2 \u2013 A casualty of Brexit or Tory mismanagement?\u201dsuggests a critical view of Brexit and the Conservative Party. The title and content use terms like \u201ccasualty\u201d and \u201cmismanagement,\u201d which carry negative connotations and imply a failure on the part of the government. The framing directs readers to consider Brexit and the Conservative administration as primary reasons for the HS2 project\u2019s difficulties without presenting counterarguments or diverse perspectives indicating a left-leaning bias, focusing on political critique rather than a balanced analysis. In conclusion, OnTheWight demonstrates a mix of neutral reporting on community and infrastructure topics and comprehensive and factual reporting on local issues while occasionally exhibiting left-leaning bias in its political coverage.",
+      "failed_fact_checks": [
+        "None in the Last 5 years"
+      ],
+      "last_updated": "February 5, 2026"
+    }
+  },
+  {
+    "name": "Onslow News",
+    "url": "https://onslownews.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Right-Center",
+      "factuality": "Mixed",
+      "credibility": "LOW CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "High",
+      "factuality_score": 4.0,
+      "credibility": "High Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Online Updates",
+    "url": "https://online-updates.net/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Pseudoscience",
+      "factuality": "Mixed",
+      "credibility": "LOW CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "Low",
+      "factuality_score": 8.0,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Amber Integrated",
+    "url": "https://www.amberintegrated.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Left-Center",
+      "factuality": "High",
+      "credibility": "MEDIUM CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "Low",
+      "factuality_score": 7.5,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Alaska Survey Research",
+    "url": "https://alaskasurveyresearch.com/",
+    "status": "FAILED_SCRAPE",
+    "ground_truth": {
+      "mbfc_url": "https://mediabiasfactcheck.com/alaska-survey-research-bias/",
+      "name": "Alaska Survey Research",
+      "source_url": "https://alaskasurveyresearch.com/",
+      "bias_rating": "LEFT-CENTER",
+      "bias_score": -2.8,
+      "factual_reporting": "MOSTLY FACTUAL",
+      "factual_score": 2.5,
+      "credibility_rating": "HIGH CREDIBILITY",
+      "country": "USA",
+      "country_freedom_rating": "MOSTLY FREE",
+      "media_type": "Organization/Foundation",
+      "traffic_popularity": "Minimal Traffic",
+      "bias_category_description": "These media sources have a slight to moderate liberal bias. \u00a0They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes) to favor liberal causes. \u00a0These sources are generally trustworthy for information but may require further investigation.See all Left-Center sources.",
+      "overall_summary": "Overall, we rate Alaska Survey Research as Left-Center biased based on polling that moderately favors Democratic candidates. We also rate them as Mostly Factual based on a B+ rating in predictive polling. Detailed Report Bias Rating: LEFT-CENTER (-2.8) Factual Reporting: MOSTLY FACTUAL (2.",
+      "history": "Founded in 1996, Alaska Survey Research (ASR) is based in Anchorage, Alaska, and specializes in market research.Ivan Moore, the founder, has a background in mathematics and statistics and has been working in the market research field in Alaska since 1990. Read our profile on the United States media and government.",
+      "ownership": "Alaska Survey Research is owned by Ivan Moore. The sale of surveys and market research generates revenue. ASR often allows survey participants to donate their payments to charity, indicating a degree of community involvement and participant engagement in their funding model.",
+      "analysis": "These media sources have a slight to moderate liberal bias. \u00a0They often publish factual information that utilizes loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes) to favor liberal causes. \u00a0These sources are generally trustworthy for information but may require further investigation.See all Left-Center sources. Alaska Survey Research conducts market research and polling via telephone and text messaging in the state of Alaska. The website does not generally report on politics. Polling bias is assessed usingSilver Bulletin\u2019smean-reverted bias metric. For ABT Alaska Survey Research, the mean-reverted polling bias is \u22121.77, indicating a moderate Democratic lean. Under MBFC\u2019s calibrated polling bias scale, a mean bias between -1.6 and -2.0 corresponds to a polling bias score of -4. Polling bias accounts for 70% of the final bias score, while editorial bias accounts for 30%. Applying MBFC\u2019s weighted formula:(\u22122 \u00d7 0.70) + (0 \u00d7 0.30) = \u22122.8 Based on MBFC\u2019s bias classification scale, a final score of -2.8 places Alaska Survey Research in the Left-Center category. Factual reporting is rated Mostly Factual based on a Silver Bulletin grade of B+, indicating average predictive accuracy and average methodological performance.",
+      "failed_fact_checks": [
+        "None in the Last 5 years"
+      ],
+      "last_updated": "February 5, 2026"
+    }
+  },
+  {
+    "name": "ABT Associates",
+    "url": "https://www.abtglobal.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Left-Center",
+      "factuality": "High",
+      "credibility": "HIGH CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "High",
+      "factuality_score": 3.0,
+      "credibility": "Very High Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": true
+    }
+  },
+  {
+    "name": "ABC News/Washington Post Polling",
+    "url": "https://www.langerresearch.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "Very High",
+      "credibility": "HIGH CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "High",
+      "factuality_score": 2.5,
+      "credibility": "Very High Credibility"
+    },
+    "matches": {
+      "bias": true,
+      "factuality": false
+    }
+  },
+  {
+    "name": "270toWin",
+    "url": "https://www.270towin.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "High",
+      "credibility": "HIGH CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "Low",
+      "factuality_score": 6.5,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": true,
+      "factuality": false
+    }
+  },
+  {
+    "name": "Daily Cedar Park",
+    "url": "https://dailycedarpark.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "Mixed",
+      "credibility": "LOW CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Center",
+      "bias_score": 0.0,
+      "factuality": "Mixed",
+      "factuality_score": 6.0,
+      "credibility": "High Credibility"
+    },
+    "matches": {
+      "bias": true,
+      "factuality": true
+    }
+  },
+  {
+    "name": "Health Insider",
+    "url": "https://healthinsider.news/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "Mixed",
+      "credibility": "LOW CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Pseudoscience",
+      "bias_score": 0.0,
+      "factuality": "Mixed",
+      "factuality_score": 5.0,
+      "credibility": "Medium Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": true
+    }
+  },
+  {
+    "name": "20/20 Insight",
+    "url": "http://www.2020insightllc.com/",
+    "status": "SUCCESS",
+    "ground_truth": {
+      "bias": "Center",
+      "factuality": "High",
+      "credibility": "MEDIUM CREDIBILITY"
+    },
+    "system_output": {
+      "bias": "Extreme Left",
+      "bias_score": -9.0,
+      "factuality": "High",
+      "factuality_score": 3.0,
+      "credibility": "Very High Credibility"
+    },
+    "matches": {
+      "bias": false,
+      "factuality": true
+    }
+  },
+  {
+    "name": "Van Wert Times-Bulletin",
+    "url": "https://www.timesbulletin.com/",
+    "status": "FAILED_SCRAPE",
+    "ground_truth": {
+      "mbfc_url": "https://mediabiasfactcheck.com/van-wert-times-bulletin-bias-and-credibility/",
+      "name": "Van Wert Times-Bulletin",
+      "source_url": "https://www.timesbulletin.com/",
+      "bias_rating": "LEAST BIASED",
+      "bias_score": -0.7,
+      "factual_reporting": "HIGH",
+      "factual_score": 1.0,
+      "credibility_rating": "HIGH CREDIBILITY",
+      "country": "USA",
+      "country_freedom_rating": "MOSTLY FREE",
+      "media_type": "Newspaper",
+      "traffic_popularity": "Minimal Traffic",
+      "bias_category_description": "These sources have minimal bias and use very few loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes). \u00a0The reporting is factual and usually sourced. \u00a0These are the most credible media sources.See all Least Biased Sources.",
+      "overall_summary": "Overall, we rate The Van Wert Times-Bulletin as Least Biased based on mainly balanced editorial positions. We also rate them High for factual reporting due to proper sourcing and a clean fact-check record. Detailed Report Bias Rating: LEAST BIASED (-0.7) Factual Reporting: HIGH (1.",
+      "history": "The Van Wert Times-Bulletin is a newspaper published in Van Wert, Ohio. timesbulletin.com covers local, national, sports, weather, and crime news for the Van Wert Area. Read our profile on USA media and government.",
+      "ownership": "The Van Wert Times-Bulletin is owned byCherryRoad Media, which publishes 20+ newspapers in the Midwest of the USA. Over the last few elections, CherryRoad hasprimarilydonated to Democrats; however, they donated 100% to Republican candidates in the past. Advertising and paid subscriptions generate revenue.",
+      "analysis": "These sources have minimal bias and use very few loaded words (wording that attempts to influence an audience by appeals to emotion or stereotypes). \u00a0The reporting is factual and usually sourced. \u00a0These are the most credible media sources.See all Least Biased Sources. In review, The Van Wert Times-Bulletin covers news, sports, community, and crime for the greater Van Wert, Ohio, area. Local news is reported with minimal loaded emotional language, such as thisVan Wert Area Chamber supports the Vantage Career Center. National and international news comes from theAssociated Press. Editorially, a review of op-eds indicates a reasonable balance between left and right. The paper reports factually and with minimal bias.",
+      "failed_fact_checks": [
+        "None in the Last 5 years"
+      ],
+      "last_updated": "February 5, 2026"
+    }
+  }
+]

@@ -1,153 +1,189 @@
 {
   "target_url": "https://www.bbc.com",
   "target_domain": "bbc.com",
-  "outlet_name": "Bbc",
-  "bias_label": "Least Biased",
-  "bias_score": 0.0,
+  "outlet_name": "British Broadcasting Corporation",
+  "bias_label": "Left-Center",
+  "bias_score": -3.0,
   "factuality_label": "High",
-  "factuality_score": 4.0,
-  "credibility_label": "Medium Credibility",
-  "credibility_score": 4.699999999999999,
+  "factuality_score": 3.5,
+  "credibility_label": "High Credibility",
+  "credibility_score": 3.6,
   "media_type": "TV",
   "traffic_tier": "High",
-  "domain_age_years": null,
+  "domain_age_years": 36.56,
   "editorial_bias_result": {
     "domain": "bbc.com",
-    "outlet_name": "Bbc",
-    "overall_bias": "Center",
-    "bias_score": 0.0,
-    "mbfc_label": "Least Biased",
+    "outlet_name": "British Broadcasting Corporation",
+    "overall_bias": "Left-Center",
+    "bias_score": -3.0,
+    "mbfc_label": "Left-Center",
     "policy_positions": [
       {
-        "domain": "Social Issues",
-        "leaning": "Center",
-        "indicators": [
-          "Focus on mental health and wellness through yoga therapy without political framing or bias."
-        ],
-        "confidence": 0.9
-      },
-      {
-        "domain": "Environmental Policy",
-        "leaning": "Center",
-        "indicators": [
-          "Reports on water crisis in South Africa without partisan language or bias."
-        ],
-        "confidence": 0.9
-      },
-      {
         "domain": "Healthcare",
-        "leaning": "Center",
+        "leaning": "Left",
         "indicators": [
-          "Discusses healthcare access and challenges in snakebite treatment without political slant."
+          "Is there the political will to fix it the US' health horror stories?",
+          "With economic stagnation and extremes of inequality comes corrosion of trust in democratic institutions."
         ],
-        "confidence": 0.9
+        "confidence": 0.8
       },
       {
         "domain": "Social Issues",
-        "leaning": "Center",
+        "leaning": "Left-Center",
         "indicators": [
-          "Describes the challenges faced by parents in Germany without political framing."
+          "Concealing symptoms of menopause can have knock-on effects for some women, such as increasing the risk of burnout."
         ],
-        "confidence": 0.9
+        "confidence": 0.7
       },
       {
-        "domain": "Social Issues",
-        "leaning": "Center",
+        "domain": "Economic Policy",
+        "leaning": "Left-Center",
         "indicators": [
-          "Reports on the cultural significance of runes without political bias."
+          "economic stagnation and extremes of inequality",
+          "the US president has promised to 'end decades of suffering'"
         ],
-        "confidence": 0.9
-      },
-      {
-        "domain": "Social Issues",
-        "leaning": "Center",
-        "indicators": [
-          "Reports on the impact of a mass stabbing incident without political framing."
-        ],
-        "confidence": 0.9
+        "confidence": 0.6
       }
     ],
-    "uses_loaded_language": false,
-    "loaded_language_examples": [],
-    "story_selection_bias": null,
+    "uses_loaded_language": true,
+    "loaded_language_examples": [
+      "health horror stories",
+      "extremes of inequality",
+      "corrosion of trust in democratic institutions"
+    ],
+    "story_selection_bias": "The article appears to focus on issues related to healthcare and social justice, highlighting systemic problems and potential reforms, which may indicate a preference for progressive narratives. It also discusses the implications of economic inequality, suggesting a critical view of the current economic system.",
     "articles_analyzed": 15,
-    "confidence": 0.9,
-    "reasoning": "The articles provided cover a range of topics including mental health, environmental issues, healthcare challenges, cultural insights, and social issues without displaying a clear political bias. They focus on factual reporting and do not employ loaded language or partisan framing. The content is informative and presents various perspectives without favoring one political side over another."
+    "confidence": 0.85,
+    "reasoning": "The overall tone of the articles suggests a left-leaning perspective, particularly in the context of healthcare and social issues. The use of terms like 'health horror stories' and 'corrosion of trust in democratic institutions' indicates a critical stance towards the current state of affairs, which aligns with left-leaning viewpoints. The focus on economic inequality and the need for reform further supports this assessment. While there is some balance in the coverage, the emphasis on systemic issues and the call for change suggest a left-center bias."
   },
   "fact_check_result": {
     "domain": "bbc.com",
-    "outlet_name": "Bbc",
+    "outlet_name": "British Broadcasting Corporation",
     "failed_checks_count": 0,
-    "total_checks_count": 0,
-    "score": 5.0,
-    "source": "Fallback",
-    "findings": [],
-    "search_snippets": null,
-    "confidence": 0.0,
-    "reasoning": "No fact check results found for this outlet"
+    "total_checks_count": 3,
+    "score": 0.0,
+    "source": "Search",
+    "findings": [
+      {
+        "source_site": "Snopes",
+        "claim_summary": "A BBC headline about Jacinda Ardern's resignation was criticized for being sexist.",
+        "verdict": "Not Rated",
+        "url": "https://www.snopes.com/fact-check/bbc-headline-jacinda-ardern-women-have-it-all/"
+      },
+      {
+        "source_site": "PolitiFact",
+        "claim_summary": "BBC reported on various claims related to political events, including the US embassy move and its implications.",
+        "verdict": "Not Rated",
+        "url": "https://www.politifact.com/truth-o-meter/promises/trumpometer/promise/1377/move-us-embassy-tel-aviv-jerusalem/article/2535/"
+      },
+      {
+        "source_site": "PolitiFact",
+        "claim_summary": "BBC reported on claims regarding child leukemia and power lines, which were later fact-checked.",
+        "verdict": "Not Rated",
+        "url": "https://www.politifact.com/factchecks/2015/jan/02/patrick-lynch/former-ri-atty-gen-patrick-lynch-says-power-lines-/"
+      }
+    ],
+    "search_snippets": "[mediabiasfactcheck.com] BBC - Bias and Credibility - Media Bias/Fact Check: 6 days ago · The company later became the British Broadcasting Corporation . The British Broadcasting Company (BBC) began its daily radio transmissions in 1922. The BBC currently provides television, radio, and online services throughout Britain and overseas and is headquartered in the Broadcasting House, London, United Kingdom. (URL: https://mediabiasfactcheck.com/bbc/)\n\n[mediabiasfactcheck.com] BBC Bias and Reliability - Ad Fontes Media: Overview Ad Fontes Media rates British Broadcasting Corporation in the Middle category of bias and as Reliable, Analysis/Fact Reporting in terms of reliability. British Broadcasting Corporation (BBC) is a public broadcasting service based in London. It publishes news on television, radio and online in more than 40 languages. Established in 1922 by a royal charter, the BBC is primarily funded ... (URL: https://adfontesmedia.com/bbc-bias-and-reliability/)\n\n[mediabiasfactcheck.",
+    "confidence": 0.9,
+    "reasoning": "The search results included several mentions of the BBC in the context of fact checks, but none of the findings had negative verdicts. All were either 'Not Rated' or did not provide a clear verdict on the accuracy of the BBC's reporting."
   },
   "sourcing_result": {
-    "score": 3.0,
+    "score": 7.0,
     "avg_sources_per_article": 0.0,
     "total_sources_found": 0,
     "unique_domains": 0,
     "has_hyperlinks": false,
     "source_assessments": [
       {
-        "domain": "Global Snakebite Taskforce",
-        "quality": "Credible",
-        "reasoning": "The Global Snakebite Taskforce is a recognized initiative focused on addressing snakebite issues, making it a credible source."
+        "domain": "BBC",
+        "quality": "Major Outlet",
+        "reasoning": "The BBC is a well-established and credible news organization, known for its journalistic standards."
       },
       {
-        "domain": "World Health Organization",
-        "quality": "Primary",
-        "reasoning": "The WHO is a leading global health authority and provides official data and classifications, qualifying it as a primary source."
+        "domain": "Google",
+        "quality": "Unknown",
+        "reasoning": "While Google is a major tech company, it is not a news source itself; the context of its mention does not provide a credible source for news."
       },
       {
-        "domain": "Dr Yogesh Jain",
+        "domain": "Melissa Hogenboom",
         "quality": "Credible",
-        "reasoning": "As a practitioner and member of the GST, Dr. Jain is a credible source of information regarding snakebite treatment in India."
+        "reasoning": "Melissa Hogenboom is identified as a senior health correspondent, which adds credibility to the information presented."
       }
     ],
-    "has_primary_sources": true,
+    "has_primary_sources": false,
     "has_wire_services": false,
     "confidence": 0.9,
-    "reasoning": "The articles generally provide credible sources, particularly in the context of health-related claims. The use of named sources is strong, especially in Article 4, which cites both the Global Snakebite Taskforce and the World Health Organization. There is no reliance on vague sourcing."
+    "reasoning": "The articles lack direct hyperlinks and primarily rely on named sources that are credible but do not include primary sources or wire services. There is also a notable reliance on vague sourcing, which diminishes the overall transparency of the claims made. (Note: Detected vague sourcing: 'Experts warn that could take years., Some studies show links to lower risk of heart disease.')"
   },
   "pseudoscience_result": {
     "domain": "bbc.com",
-    "outlet_name": "Bbc",
-    "score": 6.0,
+    "outlet_name": "British Broadcasting Corporation",
+    "score": 5.0,
     "promotes_pseudoscience": false,
     "overall_severity": "Presents Uncritically",
     "categories_found": [
+      "Detoxification Claims",
       "Alternative Medicine"
     ],
     "indicators": [
       {
-        "category": "Alternative Medicine",
+        "category": "Detoxification Claims",
         "severity": "Presents Uncritically",
-        "evidence": "Yoga therapy is considered a healthcare profession, and is underpinned by biomedical understanding and psychotherapeutic training.",
-        "scientific_consensus": "Yoga therapy may have benefits for mental health, but it should not replace conventional medical treatments."
+        "evidence": "Consumption of raw milk has seen a resurgence in recent months with some promoting it as 'liquid gold' on social media.",
+        "scientific_consensus": "Raw milk can pose health risks due to pathogens; pasteurization is recommended for safety."
       },
       {
         "category": "Alternative Medicine",
         "severity": "Presents Uncritically",
-        "evidence": "Yoga is often used in tandem with other types of treatment. Just one of a list of complementary interventions – such as acupuncture, guided imagery and hypnotherapy – yoga can offer a second-line treatment option.",
-        "scientific_consensus": "Complementary therapies like acupuncture and hypnotherapy lack robust evidence for efficacy as standalone treatments."
+        "evidence": "Dandelion greens may not seem, at first glance, to be an obvious kitchen staple. But they are packed with beneficial compounds that have anti-inflammatory and even anti-cancer effects.",
+        "scientific_consensus": "While dandelion greens are nutritious, claims of anti-cancer effects lack sufficient human research."
       }
     ],
     "respects_scientific_consensus": false,
     "articles_analyzed": 15,
     "confidence": 0.8,
-    "reasoning": "The articles present yoga therapy and its benefits without adequately addressing the lack of strong scientific evidence for its effectiveness as a standalone treatment. While they mention that yoga can be used alongside other treatments, they do not clarify that these complementary therapies often lack rigorous scientific support."
+    "reasoning": "The articles present claims about raw milk and dandelion greens without sufficient skepticism or context regarding the scientific consensus. While they do not outright promote pseudoscience, they fail to critically assess the claims made about these foods, leading to a mixed quality of science reporting."
   },
-  "history_summary": "No history information found.",
-  "founding_year": null,
-  "owner": null,
-  "funding_model": null,
-  "headquarters": null,
-  "external_analyses": [],
-  "analysis_date": "2026-02-05",
+  "history_summary": "The British Broadcasting Corporation (BBC) is the world's leading public service broadcaster, established in 1922. It is funded primarily through a licence fee and operates a wide range of television, radio, and online services, fulfilling its mission to inform, educate, and entertain audiences in the UK and globally.",
+  "founding_year": 1922,
+  "founder": "John Reith",
+  "original_name": null,
+  "key_events": [
+    "Established by a Royal Charter in 1922",
+    "Funded through the licence fee paid by UK households",
+    "Regulated by Ofcom"
+  ],
+  "owner": "UK",
+  "parent_company": null,
+  "funding_model": "public funding",
+  "headquarters": "London, England",
+  "ownership_notes": "The BBC is a public service broadcaster operating under royal charter.",
+  "external_analyses": [
+    {
+      "source_name": "Wikipedia",
+      "source_url": "https://en.wikipedia.org/wiki/Criticism_of_the_BBC",
+      "summary": "The BBC faces criticism for alleged lack of impartiality and objectivity in its journalism, with accusations coming from both the left and right. Additionally, the mandatory licence fee is criticized as unfair by commercial competitors.",
+      "sentiment": "negative"
+    },
+    {
+      "source_name": "Media Bias/Fact Check",
+      "source_url": "https://mediabiasfactcheck.com/bbc/",
+      "summary": "The BBC is rated as 'Least Biased' with 'Mostly Factual' reporting. It has a high credibility rating, indicating a strong reputation for factual reporting despite some criticisms.",
+      "sentiment": "positive"
+    },
+    {
+      "source_name": "Ad Fontes Media",
+      "source_url": "https://adfontesmedia.com/bbc-bias-and-reliability/",
+      "summary": "Ad Fontes Media rates the BBC as having a 'Middle' bias and as 'Reliable' in terms of analysis and fact reporting, suggesting a balanced approach to news coverage.",
+      "sentiment": "positive"
+    },
+    {
+      "source_name": "AllSides",
+      "source_url": "https://www.allsides.com/news-source/bbc-news-media-bias",
+      "summary": "AllSides rates the BBC as a publicly financed broadcaster, indicating a left-center bias in its content, which reflects ongoing debates about its impartiality.",
+      "sentiment": "mixed"
+    }
+  ],
+  "analysis_date": "2026-02-06",
   "articles_analyzed": 15
 }

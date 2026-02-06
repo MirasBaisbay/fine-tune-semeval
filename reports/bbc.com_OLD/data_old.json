@@ -1,0 +1,153 @@
+{
+  "target_url": "https://www.bbc.com",
+  "target_domain": "bbc.com",
+  "outlet_name": "Bbc",
+  "bias_label": "Least Biased",
+  "bias_score": 0.0,
+  "factuality_label": "High",
+  "factuality_score": 4.0,
+  "credibility_label": "Medium Credibility",
+  "credibility_score": 4.699999999999999,
+  "media_type": "TV",
+  "traffic_tier": "High",
+  "domain_age_years": null,
+  "editorial_bias_result": {
+    "domain": "bbc.com",
+    "outlet_name": "Bbc",
+    "overall_bias": "Center",
+    "bias_score": 0.0,
+    "mbfc_label": "Least Biased",
+    "policy_positions": [
+      {
+        "domain": "Social Issues",
+        "leaning": "Center",
+        "indicators": [
+          "Focus on mental health and wellness through yoga therapy without political framing or bias."
+        ],
+        "confidence": 0.9
+      },
+      {
+        "domain": "Environmental Policy",
+        "leaning": "Center",
+        "indicators": [
+          "Reports on water crisis in South Africa without partisan language or bias."
+        ],
+        "confidence": 0.9
+      },
+      {
+        "domain": "Healthcare",
+        "leaning": "Center",
+        "indicators": [
+          "Discusses healthcare access and challenges in snakebite treatment without political slant."
+        ],
+        "confidence": 0.9
+      },
+      {
+        "domain": "Social Issues",
+        "leaning": "Center",
+        "indicators": [
+          "Describes the challenges faced by parents in Germany without political framing."
+        ],
+        "confidence": 0.9
+      },
+      {
+        "domain": "Social Issues",
+        "leaning": "Center",
+        "indicators": [
+          "Reports on the cultural significance of runes without political bias."
+        ],
+        "confidence": 0.9
+      },
+      {
+        "domain": "Social Issues",
+        "leaning": "Center",
+        "indicators": [
+          "Reports on the impact of a mass stabbing incident without political framing."
+        ],
+        "confidence": 0.9
+      }
+    ],
+    "uses_loaded_language": false,
+    "loaded_language_examples": [],
+    "story_selection_bias": null,
+    "articles_analyzed": 15,
+    "confidence": 0.9,
+    "reasoning": "The articles provided cover a range of topics including mental health, environmental issues, healthcare challenges, cultural insights, and social issues without displaying a clear political bias. They focus on factual reporting and do not employ loaded language or partisan framing. The content is informative and presents various perspectives without favoring one political side over another."
+  },
+  "fact_check_result": {
+    "domain": "bbc.com",
+    "outlet_name": "Bbc",
+    "failed_checks_count": 0,
+    "total_checks_count": 0,
+    "score": 5.0,
+    "source": "Fallback",
+    "findings": [],
+    "search_snippets": null,
+    "confidence": 0.0,
+    "reasoning": "No fact check results found for this outlet"
+  },
+  "sourcing_result": {
+    "score": 3.0,
+    "avg_sources_per_article": 0.0,
+    "total_sources_found": 0,
+    "unique_domains": 0,
+    "has_hyperlinks": false,
+    "source_assessments": [
+      {
+        "domain": "Global Snakebite Taskforce",
+        "quality": "Credible",
+        "reasoning": "The Global Snakebite Taskforce is a recognized initiative focused on addressing snakebite issues, making it a credible source."
+      },
+      {
+        "domain": "World Health Organization",
+        "quality": "Primary",
+        "reasoning": "The WHO is a leading global health authority and provides official data and classifications, qualifying it as a primary source."
+      },
+      {
+        "domain": "Dr Yogesh Jain",
+        "quality": "Credible",
+        "reasoning": "As a practitioner and member of the GST, Dr. Jain is a credible source of information regarding snakebite treatment in India."
+      }
+    ],
+    "has_primary_sources": true,
+    "has_wire_services": false,
+    "confidence": 0.9,
+    "reasoning": "The articles generally provide credible sources, particularly in the context of health-related claims. The use of named sources is strong, especially in Article 4, which cites both the Global Snakebite Taskforce and the World Health Organization. There is no reliance on vague sourcing."
+  },
+  "pseudoscience_result": {
+    "domain": "bbc.com",
+    "outlet_name": "Bbc",
+    "score": 6.0,
+    "promotes_pseudoscience": false,
+    "overall_severity": "Presents Uncritically",
+    "categories_found": [
+      "Alternative Medicine"
+    ],
+    "indicators": [
+      {
+        "category": "Alternative Medicine",
+        "severity": "Presents Uncritically",
+        "evidence": "Yoga therapy is considered a healthcare profession, and is underpinned by biomedical understanding and psychotherapeutic training.",
+        "scientific_consensus": "Yoga therapy may have benefits for mental health, but it should not replace conventional medical treatments."
+      },
+      {
+        "category": "Alternative Medicine",
+        "severity": "Presents Uncritically",
+        "evidence": "Yoga is often used in tandem with other types of treatment. Just one of a list of complementary interventions – such as acupuncture, guided imagery and hypnotherapy – yoga can offer a second-line treatment option.",
+        "scientific_consensus": "Complementary therapies like acupuncture and hypnotherapy lack robust evidence for efficacy as standalone treatments."
+      }
+    ],
+    "respects_scientific_consensus": false,
+    "articles_analyzed": 15,
+    "confidence": 0.8,
+    "reasoning": "The articles present yoga therapy and its benefits without adequately addressing the lack of strong scientific evidence for its effectiveness as a standalone treatment. While they mention that yoga can be used alongside other treatments, they do not clarify that these complementary therapies often lack rigorous scientific support."
+  },
+  "history_summary": "No history information found.",
+  "founding_year": null,
+  "owner": null,
+  "funding_model": null,
+  "headquarters": null,
+  "external_analyses": [],
+  "analysis_date": "2026-02-05",
+  "articles_analyzed": 15
+}
