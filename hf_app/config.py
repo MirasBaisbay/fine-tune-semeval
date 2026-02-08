@@ -1,0 +1,403 @@
+"""
+Configuration for Media Profiler
+Aligned with MBFC Credibility & Freedom Methodology
+"""
+import os
+from dataclasses import dataclass
+
+# API Keys
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+
+# =============================================================================
+# FILE PATHS
+# =============================================================================
+FREEDOM_INDEX_FILE = "2025.csv"
+
+# Dataset paths for local SemEval 2020 Task 11 data
+DATASET_DIR = "datasets"
+TRAIN_DIR = os.path.join(DATASET_DIR, "train")
+DEV_DIR = os.path.join(DATASET_DIR, "dev")
+TEST_DIR = os.path.join(DATASET_DIR, "test")
+
+# =============================================================================
+# ISO MAPPING (2-Letter -> 3-Letter)
+# =============================================================================
+ISO_MAPPING = {
+    "KZ": "KAZ", "RU": "RUS", "US": "USA", "GB": "GBR", "UK": "GBR",
+    "NZ": "NZL", "CN": "CHN", "FR": "FRA", "DE": "DEU", "CA": "CAN",
+    "AU": "AUS", "UA": "UKR", "IL": "ISR", "TR": "TUR", "BY": "BLR",
+    "JP": "JPN", "KR": "KOR", "IN": "IND", "BR": "BRA", "ZA": "ZAF"
+}
+
+# =============================================================================
+# SCORING CONSTANTS
+# =============================================================================
+
+# MBFC Credibility Points
+CREDIBILITY_POINTS = {
+    "factual": {
+        "Very High": 4, "High": 3, "Mostly Factual": 2,
+        "Mixed": 1, "Low": 0, "Very Low": 0
+    },
+    "bias": {
+        "Least Biased": 3, "Pro-Science": 3,
+        "Right-Center": 2, "Left-Center": 2,
+        "Right": 1, "Left": 1,
+        "Extreme": 0, "Questionable": 0
+    },
+    "traffic": {
+        "High": 2, "Medium": 1, "Minimal": 0
+    },
+    "freedom_penalty": {
+        "Limited Freedom": -1,
+        "Total Oppression": -2
+    }
+}
+
+# =============================================================================
+# RSF PRESS FREEDOM INDEX — Score thresholds and labels
+# =============================================================================
+FREEDOM_LABELS = [
+    (90, 100, "Excellent Freedom"),
+    (70, 89, "Mostly Free"),
+    (50, 69, "Moderate Freedom"),
+    (25, 49, "Limited Freedom"),
+    (0, 24, "Total Oppression"),
+]
+
+# Country name aliases for matching headquarters → ISO / Country_EN
+COUNTRY_NAME_ALIASES = {
+    "UK": "United Kingdom",
+    "US": "United States",
+    "USA": "United States",
+    "UAE": "United Arab Emirates",
+    "South Korea": "Korea, South",
+    "North Korea": "Korea, North",
+    "Czech Republic": "Czechia",
+    "Ivory Coast": "Côte d'Ivoire",
+    "Russia": "Russian Federation",
+}
+
+# Mapping Weighted Fact Score (0-10, Lower is Better) to Labels
+FACTUALITY_RANGES = [
+    (0.0, 0.4, "Very High"),
+    (0.5, 1.9, "High"),
+    (2.0, 4.4, "Mostly Factual"),
+    (4.5, 6.4, "Mixed"),
+    (6.5, 8.4, "Low"),
+    (8.5, 10.0, "Very Low")
+]
+
+# Mapping Weighted Bias Score (-10 to +10) to Labels
+BIAS_RANGES = [
+    (-10.0, -8.0, "Extreme Left"),
+    (-7.9, -5.0, "Left"),
+    (-4.9, -2.0, "Left-Center"),
+    (-1.9, 1.9, "Least Biased"),
+    (2.0, 4.9, "Right-Center"),
+    (5.0, 7.9, "Right"),
+    (8.0, 10.0, "Extreme Right")
+]
+
+# =============================================================================
+# SEMEVAL 2020 TASK 11 - V2 PROPAGANDA TECHNIQUES (14 Classes)
+# =============================================================================
+# Version 2 merged similar techniques and excluded "Obfuscation,Intentional_Vagueness,Confusion"
+#
+# Merges applied:
+#   - "Bandwagon" + "Reductio_ad_Hitlerum" -> "Bandwagon,Reductio_ad_Hitlerum"
+#   - "Whataboutism" + "Straw_Men" + "Red_Herring" -> "Whataboutism,Straw_Men,Red_Herring"
+#
+# Excluded:
+#   - "Obfuscation,Intentional_Vagueness,Confusion" (eliminated in V2)
+# =============================================================================
+
+PROPAGANDA_TECHNIQUES = [
+    "Appeal_to_Authority",
+    "Appeal_to_fear-prejudice",
+    "Bandwagon,Reductio_ad_Hitlerum",
+    "Black-and-White_Fallacy",
+    "Causal_Oversimplification",
+    "Doubt",
+    "Exaggeration,Minimisation",
+    "Flag-Waving",
+    "Loaded_Language",
+    "Name_Calling,Labeling",
+    "Repetition",
+    "Slogans",
+    "Thought-terminating_Cliches",
+    "Whataboutism,Straw_Men,Red_Herring",
+]
+
+# Label mappings for model training
+LABEL2ID = {label: idx for idx, label in enumerate(PROPAGANDA_TECHNIQUES)}
+ID2LABEL = {idx: label for idx, label in enumerate(PROPAGANDA_TECHNIQUES)}
+
+# Span Identification BIO labels
+SI_LABELS = ["O", "B-PROP", "I-PROP"]
+SI_LABEL2ID = {label: idx for idx, label in enumerate(SI_LABELS)}
+SI_ID2LABEL = {idx: label for idx, label in enumerate(SI_LABELS)}
+
+# Legacy label mapping: maps V1 labels to V2 merged labels
+LEGACY_LABEL_MAPPING = {
+    # Direct mappings (unchanged labels)
+    "Appeal_to_Authority": "Appeal_to_Authority",
+    "Appeal_to_fear-prejudice": "Appeal_to_fear-prejudice",
+    "Black-and-White_Fallacy": "Black-and-White_Fallacy",
+    "Causal_Oversimplification": "Causal_Oversimplification",
+    "Doubt": "Doubt",
+    "Exaggeration,Minimisation": "Exaggeration,Minimisation",
+    "Flag-Waving": "Flag-Waving",
+    "Loaded_Language": "Loaded_Language",
+    "Name_Calling,Labeling": "Name_Calling,Labeling",
+    "Repetition": "Repetition",
+    "Slogans": "Slogans",
+    "Thought-terminating_Cliches": "Thought-terminating_Cliches",
+
+    # Merged: Bandwagon + Reductio_ad_Hitlerum
+    "Bandwagon": "Bandwagon,Reductio_ad_Hitlerum",
+    "Reductio_ad_hitlerum": "Bandwagon,Reductio_ad_Hitlerum",
+    "Bandwagon,Reductio_ad_hitlerum": "Bandwagon,Reductio_ad_Hitlerum",
+
+    # Merged: Whataboutism + Straw_Men + Red_Herring
+    "Whataboutism": "Whataboutism,Straw_Men,Red_Herring"
+}
+
+# Labels to exclude (eliminated in V2)
+EXCLUDED_LABELS = [
+    "Obfuscation,Intentional_Vagueness,Confusion",
+]
+
+# =============================================================================
+# ECONOMIC & SOCIAL SCALES
+# =============================================================================
+ECONOMIC_SCALE = {
+    "Communism": -10.0, "Socialism": -7.5, "Democratic Socialism": -5.0,
+    "Regulated Market Economy": -2.5, "Centrism": 0.0,
+    "Moderately Regulated Capitalism": 2.5, "Classical Liberalism": 5.0,
+    "Libertarianism": 7.5, "Radical Laissez-Faire": 10.0
+}
+
+SOCIAL_SCALE = {
+    "Strong Progressive": -10.0, "Progressive": -7.5, "Moderate Progressive": -5.0,
+    "Mild Progressive": -2.5, "Balanced": 0.0,
+    "Mild Conservative": 2.5, "Moderate Conservative": 5.0,
+    "Traditional Conservative": 7.5, "Strong Traditional Conservative": 10.0
+}
+
+# =============================================================================
+# NEWS REPORTING BALANCE SCALE (15% of Bias Score)
+# =============================================================================
+# Measures how well a source reports all sides in its straight news stories
+NEWS_REPORTING_SCALE = {
+    "Extreme Left Reporting": -10.0,
+    "Strong Left Reporting": -7.5,
+    "Moderate Left Reporting": -5.0,
+    "Mild Left Reporting": -2.5,
+    "Neutral/Balanced": 0.0,
+    "Mild Right Reporting": 2.5,
+    "Moderate Right Reporting": 5.0,
+    "Strong Right Reporting": 7.5,
+    "Extreme Right Reporting": 10.0
+}
+
+# =============================================================================
+# EDITORIAL BIAS SCALE (15% of Bias Score)
+# =============================================================================
+# Evaluates bias in opinion pieces, editorials, and use of loaded language
+EDITORIAL_BIAS_SCALE = {
+    "Extreme Left Editorial": -10.0,
+    "Strong Left Editorial": -7.5,
+    "Moderate Left Editorial": -5.0,
+    "Mild Left Editorial": -2.5,
+    "Neutral/Balanced Editorial": 0.0,
+    "Mild Right Editorial": 2.5,
+    "Moderate Right Editorial": 5.0,
+    "Strong Right Editorial": 7.5,
+    "Extreme Right Editorial": 10.0
+}
+
+# =============================================================================
+# SOURCING QUALITY SCALE (25% of Factuality Score)
+# =============================================================================
+# Scale 0-10 where 0 is perfect sourcing, 10 is no sourcing
+SOURCING_DESCRIPTIONS = {
+    0: "Perfect sourcing; highly credible references with clear citations",
+    1: "Almost perfect sourcing with minor inconsistencies",
+    2: "Mostly credible sourcing but occasional lapses",
+    3: "Generally credible but sourcing issues occur more frequently",
+    4: "Mostly credible but noticeable reliance on less trustworthy sources",
+    5: "Mixed sourcing including credible and questionable references",
+    6: "Moderate sourcing issues with frequent reliance on less credible sources",
+    7: "Limited sourcing mostly relying on questionable references",
+    8: "Very limited sourcing heavily reliant on discredited sources",
+    9: "Minimal sourcing using widely discredited sources",
+    10: "No sourcing or complete reliance on discredited sources"
+}
+
+# =============================================================================
+# IFCN APPROVED FACT CHECKERS
+# =============================================================================
+# International Fact-Checking Network approved organizations
+IFCN_FACT_CHECKERS = [
+    "politifact.com",
+    "factcheck.org",
+    "snopes.com",
+    "apnews.com/ap-fact-check",
+    "reuters.com/fact-check",
+    "washingtonpost.com/news/fact-checker",
+    "fullfact.org",
+    "checkyourfact.com",
+    "leadstories.com",
+    "africacheck.org",
+    "truthorfiction.com"
+]
+
+# Search queries for fact checking
+FACT_CHECK_SEARCH_TERMS = [
+    "fact check",
+    "false claim",
+    "misinformation",
+    "debunked",
+    "misleading"
+]
+
+@dataclass
+class BiasWeights:
+    economic: float = 0.35
+    social: float = 0.35
+    reporting: float = 0.15
+    editorial: float = 0.15
+
+@dataclass
+class FactualWeights:
+    failed_fact_checks: float = 0.40
+    sourcing: float = 0.25
+    transparency: float = 0.25
+    bias_propaganda: float = 0.10
+
+# =============================================================================
+# MBFC CATEGORY DESCRIPTIONS (For Report Generation)
+# =============================================================================
+
+BIAS_CATEGORY_DESCRIPTIONS = {
+    "Extreme Left": (
+        "EXTREME LEFT\n"
+        "These sources exclusively promote left-wing policies and rarely cite credible "
+        "sources. They may use strong loaded language and appeal to emotion. Most fail "
+        "fact checks and do not correct errors."
+    ),
+    "Left": (
+        "LEFT BIAS\n"
+        "These sources moderately to strongly favor liberal perspectives. They may "
+        "utilize strong loaded words (wording that attempts to influence an audience "
+        "by appeals to emotion or stereotypes), publish misleading reports, and omit "
+        "information that may damage liberal causes. Some sources in this category "
+        "may be untrustworthy."
+    ),
+    "Left-Center": (
+        "LEFT-CENTER BIAS\n"
+        "These sources have a slight to moderate liberal bias. They often publish "
+        "factual information that utilizes loaded words (wording that attempts to "
+        "influence an audience by appeals to emotion or stereotypes) to favor liberal "
+        "causes. These sources are generally trustworthy for information but may "
+        "require further investigation."
+    ),
+    "Least Biased": (
+        "LEAST BIASED\n"
+        "These sources have minimal bias and use very few loaded words (wording that "
+        "attempts to influence an audience by appeals to emotion or stereotypes). "
+        "The reporting is factual and usually sourced. These are the most credible "
+        "media sources."
+    ),
+    "Right-Center": (
+        "RIGHT-CENTER BIAS\n"
+        "These sources have a slight to moderate conservative bias. They often publish "
+        "factual information that utilizes loaded words (wording that attempts to "
+        "influence an audience by appeals to emotion or stereotypes) to favor "
+        "conservative causes. These sources are generally trustworthy for information "
+        "but may require further investigation."
+    ),
+    "Right": (
+        "RIGHT BIAS\n"
+        "These sources moderately to strongly favor conservative perspectives. They may "
+        "utilize strong loaded words (wording that attempts to influence an audience "
+        "by appeals to emotion or stereotypes), publish misleading reports, and omit "
+        "information that may damage conservative causes. Some sources in this category "
+        "may be untrustworthy."
+    ),
+    "Extreme Right": (
+        "EXTREME RIGHT\n"
+        "These sources exclusively promote right-wing policies and rarely cite credible "
+        "sources. They may use strong loaded language and appeal to emotion. Most fail "
+        "fact checks and do not correct errors."
+    )
+}
+
+FACTUALITY_DESCRIPTIONS = {
+    "Very High": "Sources that always use credible sources, are well-sourced, and have a clean fact check record.",
+    "High": "Sources that are generally reliable with minimal failed fact checks and good sourcing practices.",
+    "Mostly Factual": "Sources that are generally reliable but may have occasional minor errors or unsourced claims.",
+    "Mixed": "Sources that do not always use proper sourcing or have multiple failed fact checks.",
+    "Low": "Sources that rarely use credible sources and have numerous failed fact checks.",
+    "Very Low": "Sources that consistently fail fact checks and promote misinformation."
+}
+
+CREDIBILITY_DESCRIPTIONS = {
+    "High Credibility": "This source has earned a high credibility rating based on factual reporting, minimal bias, and transparent practices.",
+    "Medium Credibility": "This source has a moderate credibility rating. While generally reliable, some caution is advised.",
+    "Low Credibility": "This source has a low credibility rating due to failed fact checks, high bias, or lack of transparency."
+}
+
+# =============================================================================
+# COUNTRY NAME MAPPING
+# =============================================================================
+COUNTRY_NAMES = {
+    "US": "United States", "GB": "United Kingdom", "CA": "Canada",
+    "AU": "Australia", "DE": "Germany", "FR": "France", "IT": "Italy",
+    "ES": "Spain", "NL": "Netherlands", "BE": "Belgium", "CH": "Switzerland",
+    "AT": "Austria", "SE": "Sweden", "NO": "Norway", "DK": "Denmark",
+    "FI": "Finland", "IE": "Ireland", "NZ": "New Zealand", "JP": "Japan",
+    "KR": "South Korea", "CN": "China", "IN": "India", "BR": "Brazil",
+    "MX": "Mexico", "RU": "Russia", "ZA": "South Africa", "KZ": "Kazakhstan",
+    "PL": "Poland", "CZ": "Czech Republic", "HU": "Hungary", "RO": "Romania",
+    "GR": "Greece", "PT": "Portugal", "IL": "Israel", "AE": "United Arab Emirates",
+    "SA": "Saudi Arabia", "EG": "Egypt", "NG": "Nigeria", "KE": "Kenya",
+    "UA": "Ukraine", "TR": "Turkey", "TH": "Thailand", "VN": "Vietnam",
+    "PH": "Philippines", "ID": "Indonesia", "MY": "Malaysia", "SG": "Singapore"
+}
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+@dataclass
+class ModelConfig:
+    # Using larger model for better performance (304M params vs 86M)
+    model_checkpoint: str = "microsoft/deberta-v3-large"
+    max_length: int = 512
+    tc_max_length: int = 384  # Increased for more context
+    context_window: int = 150  # Increased context around snippet for TC
+
+@dataclass
+class TrainingConfig:
+    output_dir: str = "./propaganda_models"
+    si_model_dir: str = "./propaganda_models/si_model"
+    tc_model_dir: str = "./propaganda_models/tc_model"
+    # Lower learning rates for larger model
+    learning_rate_si: float = 1e-5
+    learning_rate_tc: float = 1.5e-5
+    # Reduced batch sizes to fit deberta-v3-large in VRAM
+    batch_size_si: int = 4  # Reduced from 16 (large model + 512 seq len)
+    batch_size_tc: int = 8  # Reduced from 32 (large model + 384 seq len)
+    # More epochs for better convergence
+    num_epochs_si: int = 15
+    num_epochs_tc: int = 10
+    weight_decay: float = 0.01
+    warmup_ratio: float = 0.1
+    use_class_weights: bool = True  # Enable sqrt-dampened class weighting for imbalanced data
+    use_focal_loss: bool = True  # Use focal loss for better handling of hard examples
+    focal_loss_gamma: float = 1.5  # Slightly increased for harder example focus
+    max_class_weight_ratio: float = 8.0  # Slightly reduced for stability with larger model
+    si_early_stopping_patience: int = 4  # More patience for larger model
+    tc_early_stopping_patience: int = 4  # More patience for larger model
+    gradient_checkpointing: bool = False  # Save VRAM by trading compute for memory
